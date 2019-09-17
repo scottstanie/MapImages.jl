@@ -1,0 +1,13 @@
+name = "MapImages"
+uuid = "b89d2c5a-86c2-4db3-a52c-0318110165ea"
+authors = ["scott <scott.stanie@gmail.com>"]
+version = "0.1.0"
+
+[compat]
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
