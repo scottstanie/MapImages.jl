@@ -3,6 +3,10 @@ uuid = "b89d2c5a-86c2-4db3-a52c-0318110165ea"
 authors = ["scott <scott.stanie@gmail.com>"]
 version = "0.1.0"
 
+[deps]
+Parameters = "d96e819e-fc66-5662-9728-84c9c7592b0a"
+Sario = "dbf0e0cf-d002-4d20-9fd3-93cd71fe1271"
+
 [compat]
 julia = "1"
 
