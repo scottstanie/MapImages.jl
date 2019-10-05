@@ -7,9 +7,11 @@ export MapImage
 
 using Parameters
 import Sario
+import Sario: DemRsc  # Heavily used here
 import Base: size, similar, parent, getindex, setindex!
 
-DemRsc = Dict{String, Any}
+
+include("./latlon.jl")
 
 # Note: modelling off OffsetArrays
 # https://github.com/JuliaArrays/OffsetArrays.jl/blob/master/src/OffsetArrays.jl
