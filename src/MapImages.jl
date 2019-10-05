@@ -5,23 +5,30 @@ module MapImages
 
 export MapImage
 
+using Parameters
 import Sario
+import Base: size, similar, parent, getindex, setindex!
 
 DemRsc = Dict{String, Any}
 
 # Note: modelling off OffsetArrays
+# https://github.com/JuliaArrays/OffsetArrays.jl/blob/master/src/OffsetArrays.jl
+# mutable struct MapImage{T, N, AA<:AbstractArray} <: AbstractArray{T, N}
 mutable struct MapImage{T, N, AA<:AbstractArray} <: AbstractArray{T, N}
     image::AA
     demrsc::DemRsc
     # filename::Union{Nothing, AbstractString}  # Do I care to store this??
 end
+MapImage(A::AbstractArray{T,N}, demrsc::DemRsc) where {T,N} =
+    MapImage{T,N,typeof(A)}(A, demrsc)
 
-MapImage(demrscfile::String, filename::String) = MapImage(Sario.load(filename),
-                                                          Sario.load(demrscfile),
-                                                          filename)
-MapImage(demrscfile::String, filename::String) = MapImage(Sario.load(filename),
-                                                          Sario.load(demrscfile),
-                                                          filename)
+MapImage(filename::AbstractString, 
+         demrscfile::AbstractString) = MapImage(Sario.load(filename),
+                                                Sario.load(demrscfile))
+function MapImage(filename::AbstractString)
+    demrscfile = Sario.find_rsc_file(filename)
+    MapImage(Sario.load(filename), Sario.load(demrscfile))
+end
 #
 # TODO: other loading strategies? or do we want to restrict
 
@@ -36,16 +43,21 @@ function Base.similar(A::MapImage, ::Type{T}, dims::Dims) where T
     return MapImage(B, copy(A.demrsc))
 end
 
+Base.parent(A::MapImage) = A.image
+
 function Base.getindex(A::MapImage{T,N}, I::Vararg{Int,N}) where {T,N}
     ret = A.image[I...]
     # TODO: add the demrsc adjustments
 end
 
-function Base.setindex!(A::OffsetArray{T,N}, val, I::Vararg{Int,N}) where {T,N}
+function Base.setindex!(A::MapImage{T,N}, val, I::Vararg{Int,N}) where {T,N}
     # setindex!(A, X, inds...)
     # A[inds...] = X
     A.image[I...] = val
     val
 end
+
+
+
 
 end # module
