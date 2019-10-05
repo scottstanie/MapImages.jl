@@ -1,20 +1,21 @@
 
 
-function find_overlap_idxs(asc_img, desc_img, asc_dem_rsc, desc_dem_rsc)
-    left, right, bottom, top = intersection_corners(asc_dem_rsc, desc_dem_rsc)
+# function find_overlap_idxs(asc_img, desc_img, asc.demrsc, desc.demrsc)
+function find_overlap_idxs(asc_img::MapImage, desc_img::MapImage)
+    left, right, bottom, top = intersection_corners(asc.demrsc, desc.demrsc)
     println(left, right, bottom, top)
 
     # asc_patch = asc_velo[32.3:30.71, -104.1:-102.31]
     # desc_patch = desc_velo[32.3:30.71, -104.1:-102.31]
 
-    row1, col1 = nearest_pixel(asc_dem_rsc, top, left)
-    row2, col2 = nearest_pixel(asc_dem_rsc, bottom, right)
+    row1, col1 = nearest_pixel(asc.demrsc, top, left)
+    row2, col2 = nearest_pixel(asc.demrsc, bottom, right)
     asc_idxs = (row1:row2, col1:col2)
 
     # asc_patch = asc_img[row1:row2, col1:col2]
 
-    row1, col1 = nearest_pixel(desc_dem_rsc, top, left)
-    row2, col2 = nearest_pixel(desc_dem_rsc, bottom, right)
+    row1, col1 = nearest_pixel(desc.demrsc, top, left)
+    row2, col2 = nearest_pixel(desc.demrsc, bottom, right)
     desc_idxs = (row1:row2, col1:col2)
     # desc_patch = desc_img[row1:row2, col1:col2]
 
@@ -24,12 +25,10 @@ end
 
 function find_overlap_patches(asc_fname::AbstractString, desc_fname::AbstractString=asc_fname, dset="velos/1")
 
-    asc_img = Sario.load(asc_fname, dset_name=dset)
-    desc_img = Sario.load(desc_fname, dset_name=dset)
+    asc_img = MapImage(asc_fname, dset)
+    desc_img = Sario.load(desc_fname, dset)
 
-    asc_dem_rsc = Sario.load_dem_from_h5(asc_fname)
-    desc_dem_rsc = Sario.load_dem_from_h5(desc_fname)
-    asc_idxs, desc_idxs = find_overlap_idxs(asc_img, desc_img, asc_dem_rsc, desc_dem_rsc)
+    asc_idxs, desc_idxs = find_overlap_idxs(asc_img, desc_img)
 
     a, d = asc_img[asc_idxs...], desc_img[desc_idxs...]
     m1 = a .== 0;
@@ -58,7 +57,7 @@ end
 # end
 
 """Find the nearest row, col to a given lat and/or lon"""
-function nearest_pixel(dem_rsc, lat::AbstractFloat, lon::AbstractFloat)
+function nearest_pixel(dem_rsc::DemRsc, lat::AbstractFloat, lon::AbstractFloat)
     col_idx = 1 + (lon - dem_rsc["x_first"]) / dem_rsc["x_step"]
     # out_row_col[2] = _check_bounds(col_idx_arr, ncols)
     row_idx = 1 + (lat - dem_rsc["y_first"]) / dem_rsc["y_step"]
@@ -75,7 +74,7 @@ _least_common(a, b) = min(maximum(a), maximum(b))
 
 # TODO: switch all dems to symbols??
 _symdict(d) = Dict(Symbol(k) => v for (k, v) in d)
-function intersection_corners(dem1, dem2)
+function intersection_corners(dem1::DemRsc, dem2::DemRsc)
     """
     Returns:
         tuple[float]: the boundaries of the intersection box of the 2 areas in order:

@@ -16,7 +16,7 @@ include("./latlon.jl")
 # Note: modelling off OffsetArrays
 # https://github.com/JuliaArrays/OffsetArrays.jl/blob/master/src/OffsetArrays.jl
 # mutable struct MapImage{T, N, AA<:AbstractArray} <: AbstractArray{T, N}
-mutable struct MapImage{T, N, AA<:AbstractArray} <: AbstractArray{T, N}
+@with_kw mutable struct MapImage{T, N, AA<:AbstractArray} <: AbstractArray{T, N}
     image::AA
     demrsc::DemRsc
     # filename::Union{Nothing, AbstractString}  # Do I care to store this??
@@ -24,12 +24,24 @@ end
 MapImage(A::AbstractArray{T,N}, demrsc::DemRsc) where {T,N} =
     MapImage{T,N,typeof(A)}(A, demrsc)
 
-MapImage(filename::AbstractString, 
-         demrscfile::AbstractString) = MapImage(Sario.load(filename),
-                                                Sario.load(demrscfile))
+function MapImage(filename::AbstractString, dem_or_dset::AbstractString)
+    if Sario.get_file_ext(filename) == ".h5"
+        demrsc = Sario.load_dem_from_h5(filename)
+        return MapImage(Sario.load(filename, dset_name=dem_or_dset), demrsc)
+    else
+        demrscfile = Sario.find_rsc_file(filename)
+        return MapImage(Sario.load(filename), Sario.load(demrscfile))
+    end
+end
+
 function MapImage(filename::AbstractString)
-    demrscfile = Sario.find_rsc_file(filename)
-    MapImage(Sario.load(filename), Sario.load(demrscfile))
+    if Sario.get_file_ext(filename) == ".h5"
+        demrsc = Sario.load_dem_from_h5(filename)
+        return MapImage(Sario.load(filename), demrsc)
+    else
+        demrscfile = Sario.find_rsc_file(filename)
+        return MapImage(Sario.load(filename), Sario.load(demrscfile))
+    end
 end
 #
 # TODO: other loading strategies? or do we want to restrict
