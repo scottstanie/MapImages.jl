@@ -1,4 +1,11 @@
-
+# TODO: to update just the width!
+# julia> Sario.DemRsc(demrsc, width=4)
+# Sario.DemRsc
+#   width: Int64 4
+#
+# seems great for slicing/cropping
+# Also: use @pack! to set just one field
+# @pack! demrsc = newwidth
 
 # function find_overlap_idxs(asc_img, desc_img, asc.demrsc, desc.demrsc)
 function find_overlap_idxs(asc_img::MapImage, desc_img::MapImage)
@@ -73,8 +80,6 @@ nearest_pixel(demrsc, lats::AbstractArray{AbstractFloat},
 _max_min(a, b) = max(minimum(a), minimum(b))
 _least_common(a, b) = min(maximum(a), maximum(b))
 
-# TODO: switch all dems to symbols??
-_symdict(d) = Dict(Symbol(k) => v for (k, v) in d)
 
 function intersection_corners(dem1::DemRsc, dem2::DemRsc)
     """
@@ -82,8 +87,6 @@ function intersection_corners(dem1::DemRsc, dem2::DemRsc)
         tuple[float]: the boundaries of the intersection box of the 2 areas in order:
         (lon_left,lon_right,lat_bottom,lat_top)
     """
-    # dem1 = _symdict(dem1)
-    # dem2 = _symdict(dem2)
     corners1 = grid_corners(dem1)
     corners2 = grid_corners(dem2)
     lons1, lats1 = zip(corners1...)

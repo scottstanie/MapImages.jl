@@ -11,7 +11,6 @@ import Sario: DemRsc  # Heavily used here
 import Base: size, similar, parent, getindex, setindex!
 
 
-include("./latlon.jl")
 
 # Note: modelling off OffsetArrays
 # https://github.com/JuliaArrays/OffsetArrays.jl/blob/master/src/OffsetArrays.jl
@@ -72,6 +71,13 @@ function Base.setindex!(A::MapImage{T,N}, val, I::Vararg{Int,N}) where {T,N}
 end
 
 
+#TODO:
+#https://docs.julialang.org/en/v1/base/io-network/index.html#Base.show-Tuple{Any,Any,Any}
+# MIME"image/png"
+# show(io, ::MIME"image/png", x::MapImage) = .
 
+
+# Extra functions manipulating MapImages
+include("./latlon.jl")
 
 end # module
