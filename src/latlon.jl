@@ -57,16 +57,17 @@ end
 # end
 
 """Find the nearest row, col to a given lat and/or lon"""
-function nearest_pixel(dem_rsc::DemRsc, lat::AbstractFloat, lon::AbstractFloat)
-    col_idx = 1 + (lon - dem_rsc["x_first"]) / dem_rsc["x_step"]
+function nearest_pixel(demrsc::DemRsc, lat::AbstractFloat, lon::AbstractFloat)
+    @unpack x_first, x_step, y_first, y_step = demrsc
+    col_idx = 1 + (lon - x_first) / x_step
     # out_row_col[2] = _check_bounds(col_idx_arr, ncols)
-    row_idx = 1 + (lat - dem_rsc["y_first"]) / dem_rsc["y_step"]
+    row_idx = 1 + (lat - y_first) / y_step
     # out_row_col[1] = _check_bounds(row_idx_arr, nrows)
 
     return Int.(round.((row_idx, col_idx)))
 end
-nearest_pixel(dem_rsc, lats::AbstractArray{AbstractFloat}, 
-              lons::AbstractArray{AbstractFloat}) = [nearest_pixel(dem_rsc, lat, lon)
+nearest_pixel(demrsc, lats::AbstractArray{AbstractFloat}, 
+              lons::AbstractArray{AbstractFloat}) = [nearest_pixel(demrsc, lat, lon)
                                                      for (lat, lon) in zip(lats, lons)]
 
 _max_min(a, b) = max(minimum(a), minimum(b))
@@ -74,16 +75,17 @@ _least_common(a, b) = min(maximum(a), maximum(b))
 
 # TODO: switch all dems to symbols??
 _symdict(d) = Dict(Symbol(k) => v for (k, v) in d)
+
 function intersection_corners(dem1::DemRsc, dem2::DemRsc)
     """
     Returns:
         tuple[float]: the boundaries of the intersection box of the 2 areas in order:
         (lon_left,lon_right,lat_bottom,lat_top)
     """
-    dem1 = _symdict(dem1)
-    dem2 = _symdict(dem2)
-    corners1 = grid_corners(;dem1...)
-    corners2 = grid_corners(;dem2...)
+    # dem1 = _symdict(dem1)
+    # dem2 = _symdict(dem2)
+    corners1 = grid_corners(dem1)
+    corners2 = grid_corners(dem2)
     lons1, lats1 = zip(corners1...)
     lons2, lats2 = zip(corners2...)
     left = _max_min(lons1, lons2)
@@ -94,14 +96,14 @@ function intersection_corners(dem1::DemRsc, dem2::DemRsc)
 end
 
 
-function grid_corners(; kwargs...)
+function grid_corners(demrsc::DemRsc)
     """Takes sizes and spacing from .rsc info, finds corner points in (x, y) form
 
     Returns:
         list[tuple[float]]: the corners of the latlon grid in order:
         (top right, top left, bottom left, bottom right)
     """
-    left, right, bot, top = grid_extent(;kwargs...)
+    left, right, bot, top = grid_extent(demrsc)
     return [(right, top), (left, top), (left, bot), (right, bot)]
 end
 
@@ -111,15 +113,8 @@ Returns:
     tuple[float]: the boundaries of the latlon grid in order:
     (lon_left,lon_right,lat_bottom,lat_top)
 """
-function grid_extent(;rows=nothing,
-                     cols=nothing,
-                     y_step=nothing,
-                     x_step=nothing,
-                     y_first=nothing,
-                     x_first=nothing,
-                     file_length=nothing,
-                     width=nothing,
-                     kwargs...)
+function grid_extent(demrsc::DemRsc)
+    @unpack rows, cols, y_step, x_step, y_first, x_first, file_length, width = demrsc
     rows = isnothing(rows) ? file_length : rows
     cols = isnothing(cols) ? width : cols
     @show cols
