@@ -63,6 +63,11 @@ function Base.getindex(A::MapImage{T,N}, I::Vararg{Int,N}) where {T,N}
     # TODO: add the demrsc adjustments
 end
 
+# TODO: slicing
+# ogetindex(::AA, ::UnitRange{Int64}, ::Int64)
+#
+# etindex(::AA, ::StepRangeLen{Float64,Base.TwicePrecision{Float64},Base.TwicePrecision{Float64}}, ::Int64)
+
 function Base.setindex!(A::MapImage{T,N}, val, I::Vararg{Int,N}) where {T,N}
     # setindex!(A, X, inds...)
     # A[inds...] = X
