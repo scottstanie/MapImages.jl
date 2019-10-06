@@ -66,6 +66,7 @@ end
 """Find the nearest row, col to a given lat and/or lon"""
 function nearest_pixel(demrsc::DemRsc, lat::AbstractFloat, lon::AbstractFloat)
     @unpack x_first, x_step, y_first, y_step = demrsc
+
     col_idx = 1 + (lon - x_first) / x_step
     # out_row_col[2] = _check_bounds(col_idx_arr, ncols)
     row_idx = 1 + (lat - y_first) / y_step
@@ -73,6 +74,7 @@ function nearest_pixel(demrsc::DemRsc, lat::AbstractFloat, lon::AbstractFloat)
 
     return Int.(round.((row_idx, col_idx)))
 end
+
 nearest_pixel(demrsc, lats::AbstractArray{AbstractFloat}, 
               lons::AbstractArray{AbstractFloat}) = [nearest_pixel(demrsc, lat, lon)
                                                      for (lat, lon) in zip(lats, lons)]
@@ -80,13 +82,12 @@ nearest_pixel(demrsc, lats::AbstractArray{AbstractFloat},
 _max_min(a, b) = max(minimum(a), minimum(b))
 _least_common(a, b) = min(maximum(a), maximum(b))
 
-
+"""
+Returns:
+    tuple[float]: the boundaries of the intersection box of the 2 areas in order:
+    (lon_left,lon_right,lat_bottom,lat_top)
+"""
 function intersection_corners(dem1::DemRsc, dem2::DemRsc)
-    """
-    Returns:
-        tuple[float]: the boundaries of the intersection box of the 2 areas in order:
-        (lon_left,lon_right,lat_bottom,lat_top)
-    """
     corners1 = grid_corners(dem1)
     corners2 = grid_corners(dem2)
     lons1, lats1 = zip(corners1...)
@@ -112,6 +113,8 @@ end
 
 
 """
+Get the boundaries of a grid
+
 Returns:
     tuple[float]: the boundaries of the latlon grid in order:
     (lon_left,lon_right,lat_bottom,lat_top)
