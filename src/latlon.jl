@@ -120,10 +120,30 @@ Returns:
     (lon_left,lon_right,lat_bottom,lat_top)
 """
 function grid_extent(demrsc::DemRsc)
-    @unpack rows, cols, y_step, x_step, y_first, x_first, file_length, width = demrsc
-    rows = isnothing(rows) ? file_length : rows
-    cols = isnothing(cols) ? width : cols
-    @show cols
+    @unpack rows, cols, y_step, x_step, y_first, x_first = demrsc
     return (x_first, x_first .+ x_step * (cols - 1), y_first + y_step * (rows - 1), y_first)
 end
 
+"""Returns meshgrid-like arrays X, Y
+
+julia> XX, YY = MapImages.grid(demrsc);
+
+julia> XX[1:3, 1:3]
+3×3 Array{Float64,2}:
+ -104.0  -103.998  -103.997
+ -104.0  -103.998  -103.997
+ -104.0  -103.998  -103.997
+
+julia> YY[1:3, 1:3]
+3×3 Array{Float64,2}:
+ 31.9     31.9     31.9
+ 31.8983  31.8983  31.8983
+ 31.8967  31.8967  31.8967
+"""
+function grid(demrsc::DemRsc)
+    @unpack rows, cols, y_step, x_step, y_first, x_first = demrsc
+    x = range(x_first, step=x_step, length=cols)
+    y = range(y_first, step=y_step, length=rows)
+    # return collect(reshape(y, :, 1) .* reshape(x, 1, :))
+    return collect(ones(length(y), 1) .* reshape(x, 1, :)), collect(reshape(y, :, 1) .* ones(1, length(x)))
+end
