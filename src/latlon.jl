@@ -1,3 +1,5 @@
+import Sario: DemRsc
+
 # TODO: to update just the width!
 # julia> Sario.DemRsc(demrsc, width=4)
 # Sario.DemRsc
@@ -36,7 +38,8 @@ end
 
 find_overlap_idxs(asc::MapImage, desc::MapImage) = find_overlap_idxs(asc.image, desc.image, asc.demrsc, desc.demrsc)
 
-function find_overlap_patches(asc_fname::AbstractString, desc_fname::AbstractString=asc_fname, dset="velos/1"; mask=true)
+function find_overlap_patches(asc_fname::AbstractString, desc_fname::AbstractString=asc_fname, 
+                              dset="velos/1"; mask=true)
 
     asc_img = MapImage(asc_fname, dset)
     desc_img = Sario.load(desc_fname, dset)

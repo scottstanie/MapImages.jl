@@ -81,8 +81,8 @@ function Base.getindex(A::MapImage{T,2}, I::Vararg{Union{Colon, <:AbstractRange}
 end
 
 function _new_dem_data(d::DemRsc, rowrange::ColonOrRange, colrange::ColonOrRange)
-    new_rows = isnothing(length(rowrange)) ? A.demrsc.rows : length(rowrange)
-    new_cols = isnothing(length(colrange)) ? A.demrsc.cols : length(colrange)
+    new_rows = isnothing(length(rowrange)) ? d.rows : length(rowrange)
+    new_cols = isnothing(length(colrange)) ? d.cols : length(colrange)
     row_step = step(rowrange)
     col_step = step(colrange)
     row_start = start(rowrange)
