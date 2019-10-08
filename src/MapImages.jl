@@ -23,9 +23,21 @@ end
 MapImage(A::AbstractArray{T,N}, demrsc::DemRsc) where {T,N} =
     MapImage{T,N}(A, demrsc)
 
+
+function _get_dem_h5(filename)
+    if "dem_rsc" in names(filename)
+        demrsc = Sario.load_dem_from_h5(filename)
+    else
+        demrscfile = Sario.find_rsc_file(filename)
+        demrsc = Sario.load(demrscfile)
+    end
+    return demrsc
+end
+
+# TODO: add permutes to pass through to load
 function MapImage(filename::AbstractString, dem_or_dset::AbstractString)
     if Sario.get_file_ext(filename) == ".h5"
-        demrsc = Sario.load_dem_from_h5(filename)
+        demrsc = _get_dem_h5(filename)
         return MapImage(Sario.load(filename, dset_name=dem_or_dset), demrsc)
     else
         demrscfile = Sario.find_rsc_file(filename)
@@ -35,7 +47,7 @@ end
 
 function MapImage(filename::AbstractString)
     if Sario.get_file_ext(filename) == ".h5"
-        demrsc = Sario.load_dem_from_h5(filename)
+        demrsc = _get_dem_h5(filename)
         return MapImage(Sario.load(filename), demrsc)
     else
         demrscfile = Sario.find_rsc_file(filename)
