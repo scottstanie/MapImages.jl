@@ -192,3 +192,37 @@ function grid(demrsc::DemRsc; sparse=false)
 end
 grid(img::MapImage; sparse=false) = grid(img.demrsc, sparse=sparse)
 
+
+""" Takes the row, col of a pixel and finds its lat/lon """
+function rowcol_to_latlon(row, col, demrsc::DemRsc)
+    @unpack y_step, x_step, y_first, x_first = demrsc
+    lat = y_first + (row - 1) * y_step
+    lon = x_first + (col - 1) * x_step
+    return lat, lon
+end
+
+
+
+"""Find the distance between two lat/lon points on Earth
+
+Uses the haversine formula: https://en.wikipedia.org/wiki/Haversine_formula
+so it does not account for the ellopsoidal Earth shape. Will be with about
+0.5-1% of the correct value.
+
+Notes: lats and lons are in degrees, and the values used for R Earth
+(6373 km) are optimized for locations around 39 degrees from the equator
+
+Reference: https://andrew.hedges.name/experiments/haversine/
+"""
+function latlon_to_dist(lat_lon_start, lat_lon_end, R=6378)
+    lat1, lon1 = lat_lon_start
+    lat2, lon2 = lat_lon_end
+    dlat = deg2rad(lat2 - lat1)
+    dlon = deg2rad(lon2 - lon1)
+    lat1 = deg2rad(lat1)
+    lat2 = deg2rad(lat2)
+    a = (sin(dlat / 2)^2) + (cos(lat1) * cos(lat2) * sin(dlon / 2)^2)
+    c = 2 * atan(sqrt(a), sqrt(1 - a))
+    return R * c
+
+end
