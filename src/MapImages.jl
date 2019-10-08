@@ -64,11 +64,12 @@ function Base.getindex(A::MapImage{T,N}, I::Vararg{Int,N}) where {T,N}
 end
 
 # TODO: slicing
-# ogetindex(::AA, ::UnitRange{Int64}, ::Int64)
+# getindex(::AA, ::UnitRange{Int64}, ::Int64)
 #
-# etindex(::AA, ::StepRangeLen{Float64,Base.TwicePrecision{Float64},Base.TwicePrecision{Float64}}, ::Int64)
+# setindex(::AA, ::StepRangeLen{Float64,Base.TwicePrecision{Float64},Base.TwicePrecision{Float64}}, ::Int64)
 
-function Base.setindex!(A::MapImage{T,N}, val, I::Vararg{Int,N}) where {T,N}
+# function Base.setindex!(A::MapImage{T,N}, val, I::Vararg{Int,N}) where {T,N}
+function Base.setindex!(A::MapImage{T,N}, val, I::Vararg{Any,N}) where {T,N}
     # setindex!(A, X, inds...)
     # A[inds...] = X
     A.image[I...] = val

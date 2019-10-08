@@ -7,22 +7,25 @@
 # Also: use @pack! to set just one field
 # @pack! demrsc = newwidth
 
-# function find_overlap_idxs(asc_img, desc_img, asc.demrsc, desc.demrsc)
-function find_overlap_idxs(asc_img::MapImage, desc_img::MapImage)
-    left, right, bottom, top = intersection_corners(asc.demrsc, desc.demrsc)
+
+# TODO: make a macro for functions to always get definted for img and demrsc?
+#
+#
+function find_overlap_idxs(asc_img, desc_img, asc_demrsc::DemRsc, desc_demrsc::DemRsc)
+    left, right, bottom, top = intersection_corners(asc_demrsc, desc_demrsc)
     println(left, right, bottom, top)
 
     # asc_patch = asc_velo[32.3:30.71, -104.1:-102.31]
     # desc_patch = desc_velo[32.3:30.71, -104.1:-102.31]
 
-    row1, col1 = nearest_pixel(asc.demrsc, top, left)
-    row2, col2 = nearest_pixel(asc.demrsc, bottom, right)
+    row1, col1 = nearest_pixel(asc_demrsc, top, left)
+    row2, col2 = nearest_pixel(asc_demrsc, bottom, right)
     asc_idxs = (row1:row2, col1:col2)
 
     # asc_patch = asc_img[row1:row2, col1:col2]
 
-    row1, col1 = nearest_pixel(desc.demrsc, top, left)
-    row2, col2 = nearest_pixel(desc.demrsc, bottom, right)
+    row1, col1 = nearest_pixel(desc_demrsc, top, left)
+    row2, col2 = nearest_pixel(desc_demrsc, bottom, right)
     desc_idxs = (row1:row2, col1:col2)
     # desc_patch = desc_img[row1:row2, col1:col2]
 
@@ -30,7 +33,10 @@ function find_overlap_idxs(asc_img::MapImage, desc_img::MapImage)
     # return asc_patch, desc_patch
 end
 
-function find_overlap_patches(asc_fname::AbstractString, desc_fname::AbstractString=asc_fname, dset="velos/1")
+
+find_overlap_idxs(asc::MapImage, desc::MapImage) = find_overlap_idxs(asc.image, desc.image, asc.demrsc, desc.demrsc)
+
+function find_overlap_patches(asc_fname::AbstractString, desc_fname::AbstractString=asc_fname, dset="velos/1"; mask=true)
 
     asc_img = MapImage(asc_fname, dset)
     desc_img = Sario.load(desc_fname, dset)
@@ -38,12 +44,35 @@ function find_overlap_patches(asc_fname::AbstractString, desc_fname::AbstractStr
     asc_idxs, desc_idxs = find_overlap_idxs(asc_img, desc_img)
 
     a, d = asc_img[asc_idxs...], desc_img[desc_idxs...]
+    if mask
+        a, d = _mask_asc_desc(a, d)
+    end
+    return a, d
+end
+
+function _mask_asc_desc(a, d)
     m1 = a .== 0;
     m2 = d .== 0;
     mask = m1 .| m2
     a[mask] .= 0;
     d[mask] .= 0;
     return a, d
+end
+
+function find_overlap(asc::MapImage, desc::MapImage) 
+    left, right, bottom, top = intersection_corners(asc, desc)
+
+    row1, col1 = nearest_pixel(asc, top, left)
+    row2, col2 = nearest_pixel(asc, bottom, right)
+    asc_idxs = (row1:row2, col1:col2)
+    asc_patch = asc_img[row1:row2, col1:col2]
+
+    row1, col1 = nearest_pixel(desc, top, left)
+    row2, col2 = nearest_pixel(desc, bottom, right)
+    desc_idxs = (row1:row2, col1:col2)
+    desc_patch = desc_img[row1:row2, col1:col2]
+
+    return asc_patch, desc_patch
 end
 
 # function _check_bounds(idx_arr, bound)
@@ -75,12 +104,14 @@ function nearest_pixel(demrsc::DemRsc, lat::AbstractFloat, lon::AbstractFloat)
     return Int.(round.((row_idx, col_idx)))
 end
 
-nearest_pixel(demrsc, lats::AbstractArray{AbstractFloat}, 
-              lons::AbstractArray{AbstractFloat}) = [nearest_pixel(demrsc, lat, lon)
-                                                     for (lat, lon) in zip(lats, lons)]
+nearest_pixel(demrsc::DemRsc,
+              lats::AbstractArray{<:AbstractFloat}, 
+              lons::AbstractArray{<:AbstractFloat}) = [nearest_pixel(demrsc, lat, lon)
+                                                       for (lat, lon) in zip(lats, lons)]
 
-_max_min(a, b) = max(minimum(a), minimum(b))
-_least_common(a, b) = min(maximum(a), maximum(b))
+
+nearest_pixel(img::MapImage, lats, lons) = nearest_pixel(img.demrsc, lats, lons)
+    
 
 """
 Returns:
@@ -99,6 +130,12 @@ function intersection_corners(dem1::DemRsc, dem2::DemRsc)
     return left, right, bottom, top
 end
 
+intersection_corners(img1::MapImage, img2::MapImage) = intersection_corners(img1.demrsc, img2.demrsc)
+
+
+_max_min(a, b) = max(minimum(a), minimum(b))
+_least_common(a, b) = min(maximum(a), maximum(b))
+
 
 function grid_corners(demrsc::DemRsc)
     """Takes sizes and spacing from .rsc info, finds corner points in (x, y) form
@@ -110,6 +147,7 @@ function grid_corners(demrsc::DemRsc)
     left, right, bot, top = grid_extent(demrsc)
     return [(right, top), (left, top), (left, bot), (right, bot)]
 end
+grid_corners(img::MapImage) = grid_corners(img.demrsc)
 
 
 """
@@ -123,6 +161,7 @@ function grid_extent(demrsc::DemRsc)
     @unpack rows, cols, y_step, x_step, y_first, x_first = demrsc
     return (x_first, x_first .+ x_step * (cols - 1), y_first + y_step * (rows - 1), y_first)
 end
+grid_extent(img::MapImage) = grid_extent(img.demrsc)
 
 """Returns meshgrid-like arrays X, Y
 
@@ -139,11 +178,17 @@ julia> YY[1:3, 1:3]
  31.9     31.9     31.9
  31.8983  31.8983  31.8983
  31.8967  31.8967  31.8967
+
+julia> XX, YY = MapImages.grid(demrsc, sparse=true);
 """
-function grid(demrsc::DemRsc)
+function grid(demrsc::DemRsc; sparse=false)
     @unpack rows, cols, y_step, x_step, y_first, x_first = demrsc
     x = range(x_first, step=x_step, length=cols)
     y = range(y_first, step=y_step, length=rows)
+    sparse && return (x, y)
+
     # return collect(reshape(y, :, 1) .* reshape(x, 1, :))
     return collect(ones(length(y), 1) .* reshape(x, 1, :)), collect(reshape(y, :, 1) .* ones(1, length(x)))
 end
+grid(img::MapImage; sparse=false) = grid(img.demrsc, sparse=sparse)
+
