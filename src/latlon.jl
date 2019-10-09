@@ -1,16 +1,7 @@
 import Sario: DemRsc
 
-# TODO: to update just the width!
-# julia> Sario.DemRsc(demrsc, width=4)
-# Sario.DemRsc
-#   width: Int64 4
-#
-# seems great for slicing/cropping
-# Also: use @pack! to set just one field
-# @pack! demrsc = newwidth
 
-
-# TODO: make a macro for functions to always get definted for img and demrsc?
+# TODO: make a macro for functions to always get defined for img and demrsc?
 #
 #
 function find_overlap_idxs(asc_img, desc_img, asc_demrsc::DemRsc, desc_demrsc::DemRsc)
@@ -95,7 +86,7 @@ end
 #     return int_idxs
 # end
 
-"""Find the nearest row, col to a given lat and/or lon"""
+# """Find the nearest row, col to a given lat and/or lon"""
 function nearest_pixel(demrsc::DemRsc, lat::AbstractFloat, lon::AbstractFloat)
     @unpack x_first, x_step, y_first, y_step = demrsc
 

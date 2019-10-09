@@ -5,7 +5,8 @@ module MapImages
 
 export MapImage
 
-using Parameters
+
+import Parameters: @with_kw, @unpack
 import Sario
 import Sario: DemRsc  # Heavily used here
 import Base: size, similar, step, parent, getindex, setindex!
