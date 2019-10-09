@@ -52,6 +52,7 @@ function _mask_asc_desc(a, d)
     d[mask] .= 0;
     return a, d
 end
+
 # function _check_bounds(idx_arr, bound)
 #     int_idxs = Int.(round.(idx_arr))
 #     bad_idxs = int_idxs .< 0 .| int_idxs .>= bound
@@ -69,16 +70,21 @@ end
 #     return int_idxs
 # end
 
+function nearest_row(demrsc::DemRsc, lat::AbstractFloat)
+    @unpack x_first, x_step, y_first, y_step = demrsc
+    return Int(round(1 + (lat - y_first) / y_step))
+end
+
+
+function nearest_col(demrsc::DemRsc, lon::AbstractFloat)
+    @unpack x_first, x_step, y_first, y_step = demrsc
+    return Int(round(1 + (lon - x_first) / x_step))
+end
+
+
 # """Find the nearest row, col to a given lat and/or lon"""
 function nearest_pixel(demrsc::DemRsc, lat::AbstractFloat, lon::AbstractFloat)
-    @unpack x_first, x_step, y_first, y_step = demrsc
-
-    col_idx = 1 + (lon - x_first) / x_step
-    # out_row_col[2] = _check_bounds(col_idx_arr, ncols)
-    row_idx = 1 + (lat - y_first) / y_step
-    # out_row_col[1] = _check_bounds(row_idx_arr, nrows)
-
-    return Int.(round.((row_idx, col_idx)))
+    return nearest_row(demrsc, lat), nearest_col(demrsc, lon)
 end
 
 nearest_pixel(demrsc::DemRsc,
@@ -87,6 +93,8 @@ nearest_pixel(demrsc::DemRsc,
                                                        for (lat, lon) in zip(lats, lons)]
 
 
+nearest_row(img::MapImage, lats, lons) = nearest_row(img.demrsc, lats, lons)
+nearest_col(img::MapImage, lats, lons) = nearest_col(img.demrsc, lats, lons)
 nearest_pixel(img::MapImage, lats, lons) = nearest_pixel(img.demrsc, lats, lons)
     
 
