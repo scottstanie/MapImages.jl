@@ -8,7 +8,7 @@ export MapImage
 using Parameters
 import Sario
 import Sario: DemRsc  # Heavily used here
-import Base: size, similar, parent, getindex, setindex!
+import Base: size, similar, step, parent, getindex, setindex!
 
 
 
@@ -54,32 +54,54 @@ function MapImage(filename::AbstractString)
         return MapImage(Sario.load(filename), Sario.load(demrscfile))
     end
 end
-#
-# TODO: other loading strategies? or do we want to restrict
 
 Base.eachindex(::IndexCartesian, A::MapImage) = CartesianIndices(axes(A))
+
+Base.parent(A::MapImage) = A.image
 
 # Base.parent(A::MapImage) = A.image  # TODO: do we need?
 Base.size(A::MapImage) = size(A.image)
 Base.size(A::MapImage, d) = size(A.image, d)
+
+Base.similar(A::MapImage) = MapImage(similar(A.image), copy(A.demrsc))
+Base.similar(A::MapImage, ::Type{S}) where S = MapImage(similar(A.image, S, size(A)), copy(A.demrsc))
+Base.similar(A::MapImage, dims::Dims) = MapImage(similar(A.image, eltype(A.image), size(A)),copy(A.demrsc))
 
 function Base.similar(A::MapImage, ::Type{T}, dims::Dims) where T
     B = similar(A.image, T, dims)
     return MapImage(B, copy(A.demrsc))
 end
 
-Base.parent(A::MapImage) = A.image
+
+# Allow broadasting, while keeping the output as a MapImage (instead of Array)
+# Note: Example taken directly from here:
+# https://docs.julialang.org/en/v1/manual/interfaces/#man-interfaces-broadcasting-1
+Base.BroadcastStyle(::Type{<:MapImage}) = Broadcast.ArrayStyle{MapImage}()
+
+function Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{MapImage}}, ::Type{ElType}) where ElType
+    # Scan the inputs for the MapImage:
+    A = find_obj(bc)
+    # Use the DemRsc field of A to create the output
+    MapImage(similar(Array{ElType}, axes(bc)), copy(A.demrsc))
+end
+
+"`A = find_obj(As)` returns the first MapImage among the arguments."
+find_obj(bc::Base.Broadcast.Broadcasted) = find_obj(bc.args)
+find_obj(args::Tuple) = find_obj(find_obj(args[1]), Base.tail(args))
+find_obj(x) = x
+find_obj(a::MapImage, rest) = a
+find_obj(::Any, rest) = find_obj(rest)
+
 
 # Catchall: just getindex on image, ignore demrsc
 Base.getindex(A::MapImage{T,N}, I::Vararg{Any,N}) where {T,N} = A.image[I...]
 
-# For single number getting:
-# Base.getindex(A::MapImage{T,N}, I::Vararg{Int,N}) where {T,N} = A.image[I...]
 
 ColonOrRange = Union{Colon, <:AbstractRange}
-step(::Colon) = 1  # For DemRsc adjustment purposes
+# For DemRsc adjustment purposes
+Base.step(x::Colon) = 1
 start(x::ColonOrRange) = typeof(x) <: AbstractRange ? x.start : 1
-length(x::ColonOrRange) = typeof(x) <: AbstractRange ? length(x) : nothing
+length(x::ColonOrRange) = typeof(x) <: AbstractRange ? Base.length(x) : nothing
 
 # 2D array subarray: handles ranges and colons
 function Base.getindex(A::MapImage{T,2}, I::Vararg{Union{Colon, <:AbstractRange}, 2}) where {T,N}
@@ -138,8 +160,7 @@ end
 
 # function Base.setindex!(A::MapImage{T,N}, val, I::Vararg{Int,N}) where {T,N}
 function Base.setindex!(A::MapImage{T,N}, val, I::Vararg{Any,N}) where {T,N}
-    # setindex!(A, X, inds...)
-    # A[inds...] = X
+    # setindex!(A, X, inds...)  corresponds to A[inds...] = X 
     A.image[I...] = val
     return val
 end
