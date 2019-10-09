@@ -21,12 +21,13 @@ import Base: size, similar, step, parent, getindex, setindex!
     demrsc::DemRsc
     # filename::Union{Nothing, AbstractString}  # Do I care to store this??
 end
-MapImage(A::AbstractArray{T,N}, demrsc::DemRsc) where {T,N} =
-    MapImage{T,N}(A, demrsc)
+MapImage(A::AbstractArray{T,N}, demrsc::DemRsc) where {T,N} = MapImage{T,N}(A, demrsc)
 
 
-function _get_dem_h5(filename)
-    if "dem_rsc" in names(filename)
+
+# TODO: maybe move this to Sario
+function _get_dem(filename)
+    if Sario._is_hf(filename) && "dem_rsc" in names(filename)
         demrsc = Sario.load_dem_from_h5(filename)
     else
         demrscfile = Sario.find_rsc_file(filename)
@@ -37,23 +38,13 @@ end
 
 # TODO: add permutes to pass through to load
 function MapImage(filename::AbstractString, dem_or_dset::AbstractString)
-    if Sario.get_file_ext(filename) == ".h5"
-        demrsc = _get_dem_h5(filename)
-        return MapImage(Sario.load(filename, dset_name=dem_or_dset), demrsc)
-    else
-        demrscfile = Sario.find_rsc_file(filename)
-        return MapImage(Sario.load(filename), Sario.load(demrscfile))
-    end
+    demrsc = _get_dem(filename)
+    return MapImage(Sario.load(filename, dset_name=dem_or_dset), demrsc)
 end
 
 function MapImage(filename::AbstractString)
-    if Sario.get_file_ext(filename) == ".h5"
-        demrsc = _get_dem_h5(filename)
-        return MapImage(Sario.load(filename), demrsc)
-    else
-        demrscfile = Sario.find_rsc_file(filename)
-        return MapImage(Sario.load(filename), Sario.load(demrscfile))
-    end
+    demrsc = _get_dem(filename)
+    return MapImage(Sario.load(filename), demrsc)
 end
 
 Base.eachindex(::IndexCartesian, A::MapImage) = CartesianIndices(axes(A))
@@ -64,6 +55,7 @@ Base.parent(A::MapImage) = A.image
 Base.size(A::MapImage) = size(A.image)
 Base.size(A::MapImage, d) = size(A.image, d)
 
+# Taken from https://docs.julialang.org/en/v1/manual/interfaces/ and OffsetArray examples
 Base.similar(A::MapImage) = MapImage(similar(A.image), copy(A.demrsc))
 Base.similar(A::MapImage, ::Type{S}) where S = MapImage(similar(A.image, S, size(A)), copy(A.demrsc))
 Base.similar(A::MapImage, dims::Dims) = MapImage(similar(A.image, eltype(A.image), size(A)),copy(A.demrsc))
