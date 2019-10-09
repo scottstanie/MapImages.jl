@@ -8,10 +8,11 @@ export MapImage
 
 import Parameters: @with_kw, @unpack
 import Sario
-import Sario: DemRsc  # Heavily used here
+import Sario: DemRsc
 import Base: size, similar, step, parent, getindex, setindex!
 
 
+# TODO: tests
 
 # Note: modelling off OffsetArrays
 # https://github.com/JuliaArrays/OffsetArrays.jl/blob/master/src/OffsetArrays.jl
@@ -24,10 +25,9 @@ end
 MapImage(A::AbstractArray{T,N}, demrsc::DemRsc) where {T,N} = MapImage{T,N}(A, demrsc)
 
 
-
 # TODO: maybe move this to Sario
 function _get_dem(filename)
-    if Sario._is_hf(filename) && "dem_rsc" in names(filename)
+    if Sario._is_h5(filename) && "dem_rsc" in names(filename)
         demrsc = Sario.load_dem_from_h5(filename)
     else
         demrscfile = Sario.find_rsc_file(filename)
@@ -147,7 +147,6 @@ function crop_rsc_data(demrsc::DemRsc,
                   x_step=new_x_step, y_step=new_y_step)
 end
 
-# TODO: tests
 # TODO: 3D
 # TODO: floats for lat/lon (do i want this?)
 
