@@ -8,39 +8,39 @@ function find_overlap_idxs(asc_img, desc_img, asc_demrsc::DemRsc, desc_demrsc::D
     left, right, bottom, top = intersection_corners(asc_demrsc, desc_demrsc)
     println(left, right, bottom, top)
 
-    # asc_patch = asc_velo[32.3:30.71, -104.1:-102.31]
-    # desc_patch = desc_velo[32.3:30.71, -104.1:-102.31]
-
     row1, col1 = nearest_pixel(asc_demrsc, top, left)
     row2, col2 = nearest_pixel(asc_demrsc, bottom, right)
     asc_idxs = (row1:row2, col1:col2)
 
-    # asc_patch = asc_img[row1:row2, col1:col2]
-
     row1, col1 = nearest_pixel(desc_demrsc, top, left)
     row2, col2 = nearest_pixel(desc_demrsc, bottom, right)
     desc_idxs = (row1:row2, col1:col2)
-    # desc_patch = desc_img[row1:row2, col1:col2]
 
     return asc_idxs, desc_idxs
-    # return asc_patch, desc_patch
 end
 
 
 find_overlap_idxs(asc::MapImage, desc::MapImage) = find_overlap_idxs(asc.image, desc.image, asc.demrsc, desc.demrsc)
 
-function find_overlap_patches(asc_fname::AbstractString, desc_fname::AbstractString=asc_fname, 
-                              dset="velos/1"; mask=true)
 
+function find_overlaps(asc_fname::AbstractString, desc_fname::AbstractString=asc_fname, dset="velos/1")
     asc_img = MapImage(asc_fname, dset)
-    desc_img = Sario.load(desc_fname, dset)
+    desc_img = MapImage(desc_fname, dset)
+    return find_overlaps(asc_img, desc_img)
+end
 
+function find_overlaps(asc_img::MapImage{T, 2}, desc_img::MapImage{T, 2}) where {T}
     asc_idxs, desc_idxs = find_overlap_idxs(asc_img, desc_img)
-
     a, d = asc_img[asc_idxs...], desc_img[desc_idxs...]
-    if mask
-        a, d = _mask_asc_desc(a, d)
-    end
+    a, d = _mask_asc_desc(a, d)
+    return a, d
+end
+
+# TODO: these should really be one... figure out
+function find_overlaps(asc_img::MapImage{T, 3}, desc_img::MapImage{T, 3}) where {T}
+    asc_idxs, desc_idxs = find_overlap_idxs(asc_img, desc_img)
+    a, d = asc_img[asc_idxs..., :], desc_img[desc_idxs..., :]
+    a, d = _mask_asc_desc(a, d)
     return a, d
 end
 
@@ -52,23 +52,6 @@ function _mask_asc_desc(a, d)
     d[mask] .= 0;
     return a, d
 end
-
-function find_overlap(asc::MapImage, desc::MapImage) 
-    left, right, bottom, top = intersection_corners(asc, desc)
-
-    row1, col1 = nearest_pixel(asc, top, left)
-    row2, col2 = nearest_pixel(asc, bottom, right)
-    asc_idxs = (row1:row2, col1:col2)
-    asc_patch = asc_img[row1:row2, col1:col2]
-
-    row1, col1 = nearest_pixel(desc, top, left)
-    row2, col2 = nearest_pixel(desc, bottom, right)
-    desc_idxs = (row1:row2, col1:col2)
-    desc_patch = desc_img[row1:row2, col1:col2]
-
-    return asc_patch, desc_patch
-end
-
 # function _check_bounds(idx_arr, bound)
 #     int_idxs = Int.(round.(idx_arr))
 #     bad_idxs = int_idxs .< 0 .| int_idxs .>= bound
