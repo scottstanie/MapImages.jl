@@ -27,6 +27,7 @@ MapImage(A::AbstractArray{T,N}, demrsc::DemRsc) where {T,N} = MapImage{T,N}(A, d
 
 # Extra functions manipulating MapImages
 include("./latlon.jl")
+include("./gps.jl")
 
 
 # TODO: maybe move this to Sario
