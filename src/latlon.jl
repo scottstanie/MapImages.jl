@@ -186,6 +186,8 @@ function rowcol_to_latlon(row, col, demrsc::DemRsc)
     return lat, lon
 end
 
+# Holdover from the python function... TODO: standardize the arg. order
+latlon_to_rowcol(lat::AbstractFloat, lon::AbstractFloat, demrsc::DemRsc) = nearest_pixel(demrsc, lat, lon)
 
 
 """Find the distance between two lat/lon points on Earth

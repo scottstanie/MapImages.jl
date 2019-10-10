@@ -61,7 +61,7 @@ read_station_llas() = CSV.read(STATION_LLH_FILE)
 
 
 "Return the (lon, lat) of a `station_name`"
-function station_lonlat(station_name)
+function station_lonlat(station_name::AbstractString)
     df = read_station_llas()
     !(station_name in df.name)&& error("No station named $station_name found.")
     # TODO:
@@ -73,7 +73,8 @@ end
 
 station_latlon(station_name) = reverse(station_lonlat(station_name))
 
-station_rowcol(name, demrsc) = MapImages.latlon_to_rowcol(station_latlon(name)..., demrsc)
+station_rowcol(name::AbstractString, demrsc::DemRsc) = latlon_to_rowcol(station_latlon(name)..., demrsc)
+station_rowcol(name::AbstractString, img::MapImage) = latlon_to_rowcol(station_latlon(name)..., img.demrsc)
 
 
 # function station_distance(station_name1, station_name2)
@@ -98,7 +99,7 @@ station_rowcol(name, demrsc) = MapImages.latlon_to_rowcol(station_latlon(name)..
 # end
 
 
-function download_station_data(station_name)
+function download_station_data(station_name::AbstractString)
     station_name = station_name.upper()
     url = GPS_BASE_URL.format(station=station_name)
     response = requests.get(url)
@@ -111,7 +112,7 @@ function download_station_data(station_name)
 end
 
 
-function load_station_enu(station, start_year=START_YEAR, end_year=nothing, to_cm=true)
+function load_station_enu(station::AbstractString; start_year=START_YEAR, end_year=nothing, to_cm=true)
     """Loads one gps station's ENU data since start_year until end_year
     as separate Series items
 
@@ -126,7 +127,7 @@ function load_station_enu(station, start_year=START_YEAR, end_year=nothing, to_c
     return dts, enu_zeroed
 end
 
-function load_station_data(station_name,
+function load_station_data(station_name::AbstractString;
                       start_year=START_YEAR,
                       end_year=nothing,
                       download_if_missing=true,

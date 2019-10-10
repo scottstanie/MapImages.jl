@@ -42,14 +42,9 @@ function _get_dem(filename)
 end
 
 # TODO: add permutes to pass through to load
-function MapImage(filename::AbstractString, dem_or_dset::AbstractString)
+function MapImage(filename::AbstractString; dset_name::AbstractString="")
     demrsc = _get_dem(filename)
-    return MapImage(Sario.load(filename, dset_name=dem_or_dset), demrsc)
-end
-
-function MapImage(filename::AbstractString)
-    demrsc = _get_dem(filename)
-    return MapImage(Sario.load(filename), demrsc)
+    return MapImage(Sario.load(filename, dset_name=dset_name), demrsc)
 end
 
 Base.eachindex(::IndexCartesian, A::MapImage) = CartesianIndices(axes(A))
