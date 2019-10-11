@@ -144,6 +144,7 @@ function crop_rsc_data(demrsc::DemRsc,
 
     return DemRsc(demrsc, width=new_cols, cols=new_cols,
                   file_length=new_rows, rows=new_rows,
+                  x_first=new_x_first, y_first=new_y_first,
                   x_step=new_x_step, y_step=new_y_step)
 end
 
