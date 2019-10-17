@@ -73,8 +73,8 @@ end
 
 station_latlon(station_name) = reverse(station_lonlat(station_name))
 
-station_rowcol(name::AbstractString, demrsc::DemRsc) = latlon_to_rowcol(station_latlon(name)..., demrsc)
-station_rowcol(name::AbstractString, img::MapImage) = latlon_to_rowcol(station_latlon(name)..., img.demrsc)
+station_rowcol(name::AbstractString, demrsc::DemRsc) = latlon_to_rowcol(demrsc, station_latlon(name)...)
+station_rowcol(name::AbstractString, img::MapImage) = latlon_to_rowcol(img.demrsc, station_latlon(name)...)
 
 
 # function station_distance(station_name1, station_name2)
