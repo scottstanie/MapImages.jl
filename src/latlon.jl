@@ -2,7 +2,97 @@ import Sario: DemRsc
 
 
 # TODO: make a macro for functions to always get defined for img and demrsc?
-#
+
+# if they pass `end` into getindex, it turns into an Int, which is already a row
+# Otherwise, it's a latitude/longitude if they pass a float
+_get_row(demrsc::DemRsc, x::Real) = typeof(x) <: AbstractFloat ? nearest_row(demrsc, x) : x
+_get_col(demrsc::DemRsc, x::Real) = typeof(x) <: AbstractFloat ? nearest_col(demrsc, x) : x
+
+function nearest_row(demrsc::DemRsc, lat::AbstractFloat)
+    @unpack x_first, x_step, y_first, y_step = demrsc
+    return Int(round(1 + (lat - y_first) / y_step))
+end
+
+
+function nearest_col(demrsc::DemRsc, lon::AbstractFloat)
+    @unpack x_first, x_step, y_first, y_step = demrsc
+    return Int(round(1 + (lon - x_first) / x_step))
+end
+
+
+# """Find the nearest row, col to a given lat and/or lon"""
+function nearest_pixel(demrsc::DemRsc, lat::AbstractFloat, lon::AbstractFloat)
+    return nearest_row(demrsc, lat), nearest_col(demrsc, lon)
+end
+
+nearest_pixel(demrsc::DemRsc,
+              lats::AbstractArray{<:AbstractFloat}, 
+              lons::AbstractArray{<:AbstractFloat}) = [nearest_pixel(demrsc, lat, lon)
+                                                       for (lat, lon) in zip(lats, lons)]
+
+
+nearest_row(img::MapImage, lats, lons) = nearest_row(img.demrsc, lats, lons)
+nearest_col(img::MapImage, lats, lons) = nearest_col(img.demrsc, lats, lons)
+nearest_pixel(img::MapImage, lats, lons) = nearest_pixel(img.demrsc, lats, lons)
+    
+
+""" Takes the row, col of a pixel and finds its lat/lon """
+function rowcol_to_latlon(demrsc::DemRsc, row, col)
+    @unpack y_step, x_step, y_first, x_first = demrsc
+    lat = y_first + (row - 1) * y_step
+    lon = x_first + (col - 1) * x_step
+    return lat, lon
+end
+
+# Holdover from the python function naming... 
+latlon_to_rowcol(demrsc::DemRsc, lat::AbstractFloat, lon::AbstractFloat) = nearest_pixel(demrsc, lat, lon)
+
+                          
+# For passing Tuples of ranges of lats/lons (or (lat1, end) )
+function latlon_to_rowcol(demrsc::DemRsc,
+                          lats::Tuple{<:Real, <:Real},
+                          lons::Tuple{<:Real, <:Real})::UnitRange
+    @unpack rows, cols = demrsc
+
+    row_bnds = [_get_row(demrsc, l) for l in lats]
+    # row_bnds[1] = typeof(row_bnds[1]) <: Colon ? 1 : row_bnds[1]
+    # row_bnds[2] = typeof(row_bnds[2]) <: Colon ? rows : row_bnds[2]
+    # In case they put it in backwards (since it's confusing with high lats first)
+    sort!(row_bnds)
+    clamp!(row_bnds, 1, rows)
+    rowrange = row_bnds[1]:row_bnds[2]
+
+    col_bnds = [_get_col(demrsc, l) for l in lons]
+    sort!(col_bnds)
+    clamp!(col_bnds, 1, cols)
+    colrange = col_bnds[1]:col_bnds[2]
+    return rowrange, colrange
+end
+
+
+"""
+Returns:
+    tuple[float]: the boundaries of the intersection box of the 2 areas in order:
+    (lon_left,lon_right,lat_bottom,lat_top)
+"""
+function intersection_corners(dem1::DemRsc, dem2::DemRsc)
+    corners1 = grid_corners(dem1)
+    corners2 = grid_corners(dem2)
+    lons1, lats1 = zip(corners1...)
+    lons2, lats2 = zip(corners2...)
+    left = _max_min(lons1, lons2)
+    right = _least_common(lons1, lons2)
+    bottom = _max_min(lats1, lats2)
+    top = _least_common(lats1, lats2)
+    return left, right, bottom, top
+end
+
+intersection_corners(img1::MapImage, img2::MapImage) = intersection_corners(img1.demrsc, img2.demrsc)
+
+
+_max_min(a, b) = max(minimum(a), minimum(b))
+_least_common(a, b) = min(maximum(a), maximum(b))
+
 #
 function find_overlap_idxs(asc_img, desc_img, asc_demrsc::DemRsc, desc_demrsc::DemRsc)
     left, right, bottom, top = intersection_corners(asc_demrsc, desc_demrsc)
@@ -53,73 +143,6 @@ function _mask_asc_desc(a, d)
     return a, d
 end
 
-# function _check_bounds(idx_arr, bound)
-#     int_idxs = Int.(round.(idx_arr))
-#     bad_idxs = int_idxs .< 0 .| int_idxs .>= bound
-# 
-#     if any(bad_idxs)
-#         # Need to check for single numbers, shape ()
-#         if int_idxs.shape:
-#             # Replaces locations of bad_idxs with none
-#             int_idxs = findall(bad_idxs, None, int_idxs)
-#         else:
-#             int_idxs = None
-#         end
-#     end
-# 
-#     return int_idxs
-# end
-
-function nearest_row(demrsc::DemRsc, lat::AbstractFloat)
-    @unpack x_first, x_step, y_first, y_step = demrsc
-    return Int(round(1 + (lat - y_first) / y_step))
-end
-
-
-function nearest_col(demrsc::DemRsc, lon::AbstractFloat)
-    @unpack x_first, x_step, y_first, y_step = demrsc
-    return Int(round(1 + (lon - x_first) / x_step))
-end
-
-
-# """Find the nearest row, col to a given lat and/or lon"""
-function nearest_pixel(demrsc::DemRsc, lat::AbstractFloat, lon::AbstractFloat)
-    return nearest_row(demrsc, lat), nearest_col(demrsc, lon)
-end
-
-nearest_pixel(demrsc::DemRsc,
-              lats::AbstractArray{<:AbstractFloat}, 
-              lons::AbstractArray{<:AbstractFloat}) = [nearest_pixel(demrsc, lat, lon)
-                                                       for (lat, lon) in zip(lats, lons)]
-
-
-nearest_row(img::MapImage, lats, lons) = nearest_row(img.demrsc, lats, lons)
-nearest_col(img::MapImage, lats, lons) = nearest_col(img.demrsc, lats, lons)
-nearest_pixel(img::MapImage, lats, lons) = nearest_pixel(img.demrsc, lats, lons)
-    
-
-"""
-Returns:
-    tuple[float]: the boundaries of the intersection box of the 2 areas in order:
-    (lon_left,lon_right,lat_bottom,lat_top)
-"""
-function intersection_corners(dem1::DemRsc, dem2::DemRsc)
-    corners1 = grid_corners(dem1)
-    corners2 = grid_corners(dem2)
-    lons1, lats1 = zip(corners1...)
-    lons2, lats2 = zip(corners2...)
-    left = _max_min(lons1, lons2)
-    right = _least_common(lons1, lons2)
-    bottom = _max_min(lats1, lats2)
-    top = _least_common(lats1, lats2)
-    return left, right, bottom, top
-end
-
-intersection_corners(img1::MapImage, img2::MapImage) = intersection_corners(img1.demrsc, img2.demrsc)
-
-
-_max_min(a, b) = max(minimum(a), minimum(b))
-_least_common(a, b) = min(maximum(a), maximum(b))
 
 
 function grid_corners(demrsc::DemRsc)
@@ -178,18 +201,6 @@ end
 grid(img::MapImage; sparse=false) = grid(img.demrsc, sparse=sparse)
 
 
-""" Takes the row, col of a pixel and finds its lat/lon """
-function rowcol_to_latlon(row, col, demrsc::DemRsc)
-    @unpack y_step, x_step, y_first, x_first = demrsc
-    lat = y_first + (row - 1) * y_step
-    lon = x_first + (col - 1) * x_step
-    return lat, lon
-end
-
-# Holdover from the python function... TODO: standardize the arg. order
-latlon_to_rowcol(lat::AbstractFloat, lon::AbstractFloat, demrsc::DemRsc) = nearest_pixel(demrsc, lat, lon)
-
-
 """Find the distance between two lat/lon points on Earth
 
 Uses the haversine formula: https://en.wikipedia.org/wiki/Haversine_formula
@@ -213,3 +224,20 @@ function latlon_to_dist(lat_lon_start, lat_lon_end, R=6378)
     return R * c
 
 end
+
+# function _check_bounds(idx_arr, bound)
+#     int_idxs = Int.(round.(idx_arr))
+#     bad_idxs = int_idxs .< 0 .| int_idxs .>= bound
+# 
+#     if any(bad_idxs)
+#         # Need to check for single numbers, shape ()
+#         if int_idxs.shape:
+#             # Replaces locations of bad_idxs with none
+#             int_idxs = findall(bad_idxs, None, int_idxs)
+#         else:
+#             int_idxs = None
+#         end
+#     end
+# 
+#     return int_idxs
+# end
