@@ -51,7 +51,7 @@ latlon_to_rowcol(demrsc::DemRsc, lat::AbstractFloat, lon::AbstractFloat) = neare
 # For passing Tuples of ranges of lats/lons (or (lat1, end) )
 function latlon_to_rowcol(demrsc::DemRsc,
                           lats::Tuple{<:Real, <:Real},
-                          lons::Tuple{<:Real, <:Real})::UnitRange
+                          lons::Tuple{<:Real, <:Real})::Tuple{UnitRange{Int},UnitRange{Int}}
     @unpack rows, cols = demrsc
 
     row_bnds = [_get_row(demrsc, l) for l in lats]

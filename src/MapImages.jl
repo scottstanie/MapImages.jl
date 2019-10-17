@@ -90,7 +90,7 @@ find_obj(::Any, rest) = find_obj(rest)
 Base.getindex(A::MapImage{T,N}, I::Vararg{Any,N}) where {T,N} = A.image[I...]
 
 
-ColonOrRange = Union{Colon, <:AbstractRange}
+ColonOrRange = Union{Colon, <:AbstractRange{Int}}
 # For DemRsc adjustment purposes
 Base.step(x::Colon) = 1
 start(x::ColonOrRange) = typeof(x) <: AbstractRange ? x.start : 1
