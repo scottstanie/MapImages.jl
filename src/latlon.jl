@@ -97,6 +97,7 @@ nearest_row(img::MapImage, lats, lons) = nearest_row(img.demrsc, lats, lons)
 nearest_col(img::MapImage, lats, lons) = nearest_col(img.demrsc, lats, lons)
 nearest_pixel(img::MapImage, lats, lons) = nearest_pixel(img.demrsc, lats, lons)
     
+nearest(point, arr) = Int(round((point - first(arr)) / (arr[2] - arr[1])))
 
 """
 Returns:
@@ -212,4 +213,34 @@ function latlon_to_dist(lat_lon_start, lat_lon_end, R=6378)
     c = 2 * atan(sqrt(a), sqrt(1 - a))
     return R * c
 
+end
+
+function bin_vals(demrsc, df)
+    out = zeros(size(demrsc))
+    for (lon, lat, val) in eachrow(df[:, [:LongNAD27, :LatNAD27, :sum15_17]])
+        row, col = nearest_pixel(demrsc, lat, lon)
+        (row < 1 || row > size(out, 1) || col < 1 || col > size(out, 2)) && continue
+        out[row, col] += val
+    end
+    return out
+end
+
+function bin_vals(demrsc, df; digits=2)
+    lons, lats = coarse_grid(demrsc, digits)
+    out = zeros(length(lats), length(lons))
+    for (lon, lat, val) in eachrow(df[:, [:LongNAD27, :LatNAD27, :sum15_17]])
+        row = nearest(lat, lats)
+        col = nearest(lon, lons)
+        (row < 1 || row > size(out, 1) || col < 1 || col > size(out, 2)) && continue
+        out[row, col] += val
+    end
+    return out
+end
+
+function coarse_grid(demrsc, digits=2)
+    lons, lats = MapImages.grid(demrsc, sparse=true)
+    lat1, lat2 = round.(extrema(lats), digits=digits)
+    lon1, lon2 = round.(extrema(lons), digits=digits)
+    step = 10.0^(-digits)
+    return lon1:step:lon2, lat1:step:lat2
 end
