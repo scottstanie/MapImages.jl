@@ -90,7 +90,7 @@ find_obj(::Any, rest) = find_obj(rest)
 Base.getindex(A::MapImage{T,N}, I::Vararg{Any,N}) where {T,N} = A.image[I...]
 
 
-ColonOrRange = Union{Colon, <:AbstractRange}
+ColonOrRange = Union{Colon, <:AbstractRange{Int}}
 # For DemRsc adjustment purposes
 Base.step(x::Colon) = 1
 start(x::ColonOrRange) = typeof(x) <: AbstractRange ? x.start : 1
@@ -107,6 +107,43 @@ function Base.getindex(A::MapImage{T,2}, I::Vararg{ColonOrRange, 2}) where {T}
     return MapImage(subimg, newdemrsc)
 end
 
+# TODO: 3D
+
+# 2D array single floats + colons (for lat/lon)
+# First: A[lat, lon]
+function Base.getindex(A::MapImage{T,2}, I::Vararg{<:Real, 2}) where {T}
+    row = _get_row(A.demrsc, I[1])
+    col = _get_col(A.demrsc, I[2])
+
+    subimg = A.image[row, col]
+    
+    # We assume this is no longer a value image since it's not a range:
+    # just return image data
+    return subimg
+end
+
+# 2D array subarray: For float ranges, we want a tuple of floats
+# This is because doing something like 30.1:33.4 won't tell you what the
+# final number was.
+# The StepRangeLen gives the start, len, offset, and step, so you will lose what 
+# the end of the range was
+# E.G.
+#   A[(30.1, 32.2), (-104.1, :)]
+function Base.getindex(A::MapImage{T,2}, I::Vararg{Tuple{<:Real, <:Real}, 2}) where {T}
+    lats, lons = I
+
+    rowrange, colrange = latlon_to_rowcol(A.demrsc, lats, lons)
+    subimg = A.image[rowrange, colrange]
+
+    
+    # DemRsc adjusting:
+    newdemrsc = _new_dem_data(A.demrsc, rowrange, colrange)
+
+    return MapImage(subimg, newdemrsc)
+end
+
+
+# Making changes to the DemRsc: prep incoming data
 function _new_dem_data(d::DemRsc, rowrange::ColonOrRange, colrange::ColonOrRange)
     new_rows = isnothing(length(rowrange)) ? d.rows : length(rowrange)
     new_cols = isnothing(length(colrange)) ? d.cols : length(colrange)
@@ -148,61 +185,6 @@ function crop_rsc_data(demrsc::DemRsc,
                   x_step=new_x_step, y_step=new_y_step)
 end
 
-# TODO: 3D
-
-# 2D array single floats + colons (for lat/lon)
-# First: A[lat, lon]
-
-# Here, if they pass `end`, it turns into an Int, already a row
-_get_row(x::Real, demrsc::DemRsc) = typeof(x) <: AbstractFloat ? nearest_row(demrsc, x) : x
-_get_col(x::Real, demrsc::DemRsc) = typeof(x) <: AbstractFloat ? nearest_col(demrsc, x) : x
-
-function Base.getindex(A::MapImage{T,2}, Idxs::Vararg{<:Real, 2}) where {T}
-# function Base.getindex(A::MapImage{T,2}, Idxs::Vararg{Tuple{S, S}, 2}) where {T}
-    row = _get_row(Idxs[1], A.demrsc)
-    col = _get_col(Idxs[2], A.demrsc)
-
-    subimg = A.image[row, col]
-    
-    # We assume this is no longer a value image since it's not a range:
-    # just return image data
-    return subimg
-end
-
-# 2D array subarray: For float ranges, we want a tuple of floats
-# This is because doing something like 30.1:33.4 won't tell you what the
-# final number was.
-# The StepRangeLen gives the start, len, offset, and step, so you will lose what 
-# the end of the range was
-# E.G.
-#   A[(30.1, 32.2), (-104.1, :)]
-function Base.getindex(A::MapImage{T,2}, I::Vararg{Tuple{<:Real, <:Real}, 2}) where {T}
-    lats, lons = I
-    nrows, ncols = size(A)[1:2]
-
-    rows = [_get_row(idx, A.demrsc) for idx in lats]
-    # rows[1] = typeof(rows[1]) <: Colon ? 1 : rows[1]
-    # rows[2] = typeof(rows[2]) <: Colon ? nrows : rows[2]
-    # In case they put it in backwards (since it's confusing with high lats first)
-    sort!(rows)
-    clamp!(rows, 1, nrows)
-
-    rowrange = rows[1]:rows[2]
-
-    cols = [_get_col(idx, A.demrsc) for idx in lons]
-    # cols[1] = typeof(cols[1]) <: Colon ? 1 : cols[1]
-    # cols[2] = typeof(cols[2]) <: Colon ? ncols : cols[2]
-    sort!(cols)
-    clamp!(cols, 1, ncols)
-    colrange = cols[1]:cols[2]
-
-    subimg = A.image[rowrange, colrange]
-    
-    # DemRsc adjusting:
-    newdemrsc = _new_dem_data(A.demrsc, rowrange, colrange)
-
-    return MapImage(subimg, newdemrsc)
-end
 
 
 # function Base.setindex!(A::MapImage{T,N}, val, I::Vararg{Int,N}) where {T,N}
