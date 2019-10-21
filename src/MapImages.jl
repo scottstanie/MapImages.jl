@@ -9,7 +9,7 @@ export MapImage
 import Parameters: @with_kw, @unpack
 import Sario
 import Sario: DemRsc
-import Base: size, similar, step, parent, getindex, setindex!
+import Base: length, size, similar, step, parent, getindex, setindex!
 
 
 # TODO: tests
@@ -95,7 +95,7 @@ ColonOrRange = Union{Colon, <:AbstractRange{Int}}
 # For DemRsc adjustment purposes
 Base.step(x::Colon) = 1
 start(x::ColonOrRange) = typeof(x) <: AbstractRange ? x.start : 1
-length(x::ColonOrRange) = typeof(x) <: AbstractRange ? Base.length(x) : nothing
+Base.length(x::ColonOrRange) = typeof(x) <: AbstractRange ? Base.length(x) : nothing
 
 # 2D array subarray: handles ranges and colons
 function Base.getindex(A::MapImage{T,2}, I::Vararg{ColonOrRange, 2}) where {T}
