@@ -1,5 +1,8 @@
 # MapImages.jl
+```@contents
+```
 
+## Index
 ```@index
 ```
 

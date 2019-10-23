@@ -35,6 +35,7 @@ nearest_row(img::MapImage, lats, lons) = nearest_row(img.demrsc, lats, lons)
 nearest_col(img::MapImage, lats, lons) = nearest_col(img.demrsc, lats, lons)
 nearest_pixel(img::MapImage, lats, lons) = nearest_pixel(img.demrsc, lats, lons)
     
+nearest(arr::AbstractArray, point) = Int(round((point - first(arr)) / (arr[2] - arr[1])))
 
 """ Takes the row, col of a pixel and finds its lat/lon """
 function rowcol_to_latlon(demrsc::DemRsc, row, col)
@@ -225,19 +226,34 @@ function latlon_to_dist(lat_lon_start, lat_lon_end, R=6378)
 
 end
 
-# function _check_bounds(idx_arr, bound)
-#     int_idxs = Int.(round.(idx_arr))
-#     bad_idxs = int_idxs .< 0 .| int_idxs .>= bound
-# 
-#     if any(bad_idxs)
-#         # Need to check for single numbers, shape ()
-#         if int_idxs.shape:
-#             # Replaces locations of bad_idxs with none
-#             int_idxs = findall(bad_idxs, None, int_idxs)
-#         else:
-#             int_idxs = None
-#         end
-#     end
-# 
-#     return int_idxs
-# end
+oob(row, col, out) = row < 1 || row > size(out, 1) || col < 1 || col > size(out, 2)
+function bin_vals(demrsc, df; valcol=:sum15_17, loncol=:LongNAD27, latcol=:LatNAD27)
+    out = zeros(size(demrsc))
+    for (lon, lat, val) in eachrow(df[:, [loncol, latcol, valcol]])
+        row, col = nearest_pixel(demrsc, lat, lon)
+        oob(row, col, out) && continue
+        out[row, col] += val
+    end
+    return out
+end
+
+function coarse_bin_vals(demrsc, df; digits=2, valcol=:sum15_17, loncol=:LongNAD27, latcol=:LatNAD27)
+    lons, lats = coarse_grid(demrsc, digits)
+    out = zeros(size(lats, 1), size(lons, 1))
+    for (lon, lat, val) in eachrow(df[:, [loncol, latcol, valcol]])
+        row = nearest(lats, lat)
+        col = nearest(lons, lon)
+        oob(row, col, out) && continue
+        out[row, col] += val
+    end
+    return out
+end
+
+"""Create a grid from a DemRsc on the 10^(-`digits`) grid lines"""
+function coarse_grid(demrsc, digits=2)
+    lons, lats = MapImages.grid(demrsc, sparse=true)
+    lat1, lat2 = round.(extrema(lats), digits=digits)
+    lon1, lon2 = round.(extrema(lons), digits=digits)
+    step = 10.0^(-digits)
+    return lon1:step:lon2, lat2:(-step):lat1
+end
