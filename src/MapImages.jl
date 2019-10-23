@@ -9,7 +9,7 @@ export MapImage
 import Parameters: @with_kw, @unpack
 import Sario
 import Sario: DemRsc
-import Base: size, similar, step, parent, getindex, setindex!
+import Base: length, size, similar, step, parent, getindex, setindex!
 
 
 # TODO: tests
@@ -87,14 +87,16 @@ find_obj(::Any, rest) = find_obj(rest)
 
 
 # Catchall: just getindex on image, ignore demrsc
-Base.getindex(A::MapImage{T,N}, I::Vararg{Any,N}) where {T,N} = A.image[I...]
+function Base.getindex(A::MapImage{T,N}, I::Vararg{Any,N}) where {T,N}
+    A.image[I...]
+end
 
 
 ColonOrRange = Union{Colon, <:AbstractRange{Int}}
 # For DemRsc adjustment purposes
 Base.step(x::Colon) = 1
 start(x::ColonOrRange) = typeof(x) <: AbstractRange ? x.start : 1
-length(x::ColonOrRange) = typeof(x) <: AbstractRange ? Base.length(x) : nothing
+Base.length(x::ColonOrRange) = typeof(x) <: AbstractRange ? Base.length(x) : nothing
 
 # 2D array subarray: handles ranges and colons
 function Base.getindex(A::MapImage{T,2}, I::Vararg{ColonOrRange, 2}) where {T}
@@ -120,6 +122,15 @@ function Base.getindex(A::MapImage{T,2}, I::Vararg{<:Real, 2}) where {T}
     # We assume this is no longer a value image since it's not a range:
     # just return image data
     return subimg
+end
+
+# 3D array [lat, lon, :] or [row, col, :]
+function Base.getindex(A::MapImage{T,3}, I::Vararg{Any, 3}) where {T}
+    row = _get_row(A.demrsc, I[1])
+    col = _get_col(A.demrsc, I[2])
+
+    # No longer a valid MapImage, just 1d
+    return A.image[row, col, I[3]]
 end
 
 # 2D array subarray: For float ranges, we want a tuple of floats
