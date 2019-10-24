@@ -1,7 +1,12 @@
 import Sario: DemRsc
 
 
+
 # TODO: make a macro for functions to always get defined for img and demrsc?
+last_lat(d::DemRsc) = d.y_first + d.y_step * (d.rows - 1)
+last_lon(d::DemRsc) = d.x_first + d.x_step * (d.cols - 1)
+last_lat(img::MapImage) = last_lat(img.demrsc)
+last_lon(img::MapImage) = last_lon(img.demrsc)
 
 # if they pass `end` into getindex, it turns into an Int, which is already a row
 # Otherwise, it's a latitude/longitude if they pass a float
@@ -202,7 +207,38 @@ end
 grid(img::MapImage; sparse=false) = grid(img.demrsc, sparse=sparse)
 
 
+### Stitching ###
+#
+function outer_bbox(imgs::MapImage...)::MapImage
+    demrsc = imgs[1].demrsc
+    length(imgs) < 2 && return MapImage(zeros(size(imgs[1])), demrsc)
+
+    lat1, lon1 = demrsc.y_first, demrsc.x_first
+    lat2, lon2 = last_lat(demrsc), last_lon(demrsc)
+    
+    for img in imgs[2:end]
+        d = img.demrsc
+        lat1 = max(lat1, d.y_first)  # lat first is more north = bigger
+        lon1 = min(lon1, d.x_first)
+        lat2 = min(lat2, last_lat(d))
+        lon2 = max(lon2, last_lon(d))
+    end
+    return _make_zero_img(demrsc, lat1, lat2, lon1, lon2)
+end
+
+function _make_zero_img(demrsc, lat1, lat2, lon1, lon2)
+    newcols = 1 + Int(round((lat2 - lat1) / demrsc.y_step))  # SHOULD be integer
+    newrows = 1 + Int(round((lon2 - lon1) / demrsc.x_step))
+    newdem = DemRsc(demrsc, x_first=lon1, y_first=lat1,
+                    width=newcols, file_length=newrows)
+    return MapImage(zeros(newrows, newcols), newdem)
+end
+
+
+
 """Find the distance between two lat/lon points on Earth
+
+    latlon_to_dist(lat_lon_start, lat_lon_end, R=6378)
 
 Uses the haversine formula: https://en.wikipedia.org/wiki/Haversine_formula
 so it does not account for the ellopsoidal Earth shape. Will be with about
@@ -226,6 +262,9 @@ function latlon_to_dist(lat_lon_start, lat_lon_end, R=6378)
 
 end
 
+
+### Gridding Functions for summing CSVs into bins ###
+#
 oob(row, col, out) = row < 1 || row > size(out, 1) || col < 1 || col > size(out, 2)
 function bin_vals(demrsc, df; valcol=:sum15_17, loncol=:LongNAD27, latcol=:LatNAD27)
     out = zeros(size(demrsc))
