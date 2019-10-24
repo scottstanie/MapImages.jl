@@ -223,17 +223,39 @@ function outer_bbox(imgs::MapImage...)::MapImage
         lat2 = min(lat2, last_lat(d))
         lon2 = max(lon2, last_lon(d))
     end
-    return _make_zero_img(demrsc, lat1, lat2, lon1, lon2)
+    return _make_zero_img(imgs[1], lat1, lat2, lon1, lon2)
 end
 
-function _make_zero_img(demrsc, lat1, lat2, lon1, lon2)
-    newcols = 1 + Int(round((lat2 - lat1) / demrsc.y_step))  # SHOULD be integer
-    newrows = 1 + Int(round((lon2 - lon1) / demrsc.x_step))
+function _make_zero_img(img, lat1, lat2, lon1, lon2)
+    demrsc = img.demrsc
+    newrows = 1 + Int(round((lat2 - lat1) / demrsc.y_step))  # SHOULD be integer
+    newcols = 1 + Int(round((lon2 - lon1) / demrsc.x_step))
     newdem = DemRsc(demrsc, x_first=lon1, y_first=lat1,
+                    rows=newrows, cols=newcols,
                     width=newcols, file_length=newrows)
-    return MapImage(zeros(newrows, newcols), newdem)
+    return MapImage(zeros(eltype(img), newrows, newcols), newdem)
 end
 
+function intersect_idxs(bigger::DemRsc, smaller::DemRsc)
+    topleft = nearest_pixel(bigger, smaller.y_first, smaller.x_first)
+    botright = nearest_pixel(bigger, last_lat(smaller), last_lon(smaller))
+    return topleft, botright
+end
+
+# TODO: clean up, make general, specify what get overwritten
+# g1 is the one we keep, g2 is overwritten
+function stitchint(g1::MapImage, g2::MapImage)
+    out = MapImages.outer_bbox(g1, g2);
+    ((r1, c1), (r2, c2)) = intersect_idxs(out, g2)
+    out[r1:r2, c1:c2] .= g2.image
+    ((r1, c1), (r2, c2)) = intersect_idxs(out, g1)
+    out[r1:r2, c1:c2] .= g1.image
+    return out
+end
+
+stitchint(f1::AbstractString, f2::AbstractString) = stitchint(MapImage(f1), MapImage(f2))
+
+intersect_idxs(a::MapImage, b::MapImage) = intersect_idxs(a.demrsc, b.demrsc)
 
 
 """Find the distance between two lat/lon points on Earth
