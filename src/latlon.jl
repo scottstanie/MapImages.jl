@@ -49,9 +49,11 @@ function rowcol_to_latlon(demrsc::DemRsc, row, col)
     lon = x_first + (col - 1) * x_step
     return lat, lon
 end
+rowcol_to_latlon(img::MapImage, row, col) = rowcol_to_latlon(img.demrsc, row, col)
 
 # Holdover from the python function naming... 
 latlon_to_rowcol(demrsc::DemRsc, lat::AbstractFloat, lon::AbstractFloat) = nearest_pixel(demrsc, lat, lon)
+latlon_to_rowcol(img::MapImage, lat::AbstractFloat, lon::AbstractFloat) = nearest_pixel(img.demrsc, lat, lon)
 
                           
 # For passing Tuples of ranges of lats/lons (or (lat1, end) )
@@ -281,8 +283,13 @@ function latlon_to_dist(lat_lon_start, lat_lon_end, R=6378)
     a = (sin(dlat / 2)^2) + (cos(lat1) * cos(lat2) * sin(dlon / 2)^2)
     c = 2 * atan(sqrt(a), sqrt(1 - a))
     return R * c
-
 end
+function rowcol_to_dist(demrsc::DemRsc, rowcol1, rowcol2, R=6378)
+    latlon1 = rowcol_to_latlon(demrsc, rowcol1...)
+    latlon2 = rowcol_to_latlon(demrsc, rowcol2...)
+    return latlon_to_dist(latlon1, latlon2, R)
+end
+rowcol_to_dist(img::MapImage, args...) = rowcol_to_dist(img.demrsc, args...)
 
 
 ### Gridding Functions for summing CSVs into bins ###
