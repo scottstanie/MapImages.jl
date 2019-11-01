@@ -122,8 +122,8 @@ find_overlap_idxs(asc::MapImage, desc::MapImage) = find_overlap_idxs(asc.image, 
 
 
 function find_overlaps(asc_fname::AbstractString, desc_fname::AbstractString=asc_fname, dset="velos/1")
-    asc_img = MapImage(asc_fname, dset)
-    desc_img = MapImage(desc_fname, dset)
+    asc_img = MapImage(asc_fname, dset_name=dset)
+    desc_img = MapImage(desc_fname, dset_name=dset)
     return find_overlaps(asc_img, desc_img)
 end
 

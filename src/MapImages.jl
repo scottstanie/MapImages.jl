@@ -99,8 +99,8 @@ Base.step(x::Colon) = 1
 start(x::ColonOrRange) = typeof(x) <: AbstractRange ? x.start : 1
 Base.length(x::ColonOrRange) = typeof(x) <: AbstractRange ? Base.length(x) : nothing
 
-# 2D array subarray: handles ranges and colons
-function Base.getindex(A::MapImage{T,2}, I::Vararg{ColonOrRange, 2}) where {T}
+# 2D + 3D array subarray: handles ranges and colons
+function Base.getindex(A::MapImage{T,N}, I::Vararg{ColonOrRange, N}) where {T, N}
     subimg = A.image[I...]
     
     # DemRsc adjusting:
@@ -109,8 +109,6 @@ function Base.getindex(A::MapImage{T,2}, I::Vararg{ColonOrRange, 2}) where {T}
 
     return MapImage(subimg, newdemrsc)
 end
-
-# TODO: 3D
 
 # 2D array single floats + colons (for lat/lon)
 # First: A[lat, lon]
@@ -126,7 +124,7 @@ function Base.getindex(A::MapImage{T,2}, I::Vararg{<:Real, 2}) where {T}
 end
 
 # 3D array [lat, lon, :] or [row, col, :]
-function Base.getindex(A::MapImage{T,3}, I::Vararg{Any, 3}) where {T}
+function Base.getindex(A::MapImage{T,3}, I::Vararg{<:Real, 3}) where {T}
     row = _get_row(A.demrsc, I[1])
     col = _get_col(A.demrsc, I[2])
 
