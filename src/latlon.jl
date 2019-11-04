@@ -62,7 +62,7 @@ nearest(arr::AbstractArray, point) = Int(round((point - first(arr)) / (arr[2] - 
 
 Takes the row, col of a pixel and finds its lat/lon within the grid
 """
-rowcol_to_latlon(demrsc::DemRsc, row, col) (y_first + (row - 1) * y_step), (x_first + (col - 1) * x_step)
+rowcol_to_latlon(demrsc::DemRsc, row, col) =  ((y_first + (row - 1) * y_step), (x_first + (col - 1) * x_step))
 @allow_mapimage rowcol_to_latlon
 
 # Holdover from the python function naming... 
