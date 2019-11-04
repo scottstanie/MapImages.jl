@@ -1,12 +1,35 @@
 import Sario: DemRsc
 
+"""
+    @allow_mapimage(funcname)
 
+macro to make `DemRsc` functions equivalently definted for `MapImage`
+Just passes along the MapImage.demrsc to the already defined function
 
-# TODO: make a macro for functions to always get defined for img and demrsc?
+Usage
+-------
+
+    nearest_row(d::DemRsc, lats, lons) = ...
+    @allow_mapimage last_lon
+
+This is the same as:
+
+    nearest_row(img::MapImage, lats, lons) = nearest_row(img.demrsc, lats, lons)
+"""
+macro allow_mapimage(funcname)
+    fname = esc(funcname)
+    quote
+        function $fname(m::MapImage, args...; kwargs...)
+            return $fname(m.demrsc, args...; kwargs...)
+        end
+    end
+end
+
 last_lat(d::DemRsc) = d.y_first + d.y_step * (d.rows - 1)
 last_lon(d::DemRsc) = d.x_first + d.x_step * (d.cols - 1)
-last_lat(img::MapImage) = last_lat(img.demrsc)
-last_lon(img::MapImage) = last_lon(img.demrsc)
+@allow_mapimage last_lat
+@allow_mapimage last_lon
+
 
 # if they pass `end` into getindex, it turns into an Int, which is already a row
 # Otherwise, it's a latitude/longitude if they pass a float
@@ -34,9 +57,9 @@ nearest_pixel(demrsc::DemRsc,
                                                        for (lat, lon) in zip(lats, lons)]
 
 
-nearest_row(img::MapImage, lats, lons) = nearest_row(img.demrsc, lats, lons)
-nearest_col(img::MapImage, lats, lons) = nearest_col(img.demrsc, lats, lons)
-nearest_pixel(img::MapImage, lats, lons) = nearest_pixel(img.demrsc, lats, lons)
+@allow_mapimage nearest_row
+@allow_mapimage nearest_col
+@allow_mapimage nearest_pixel
     
 # If we have just an array and not a DemRsc or MapImage:
 nearest(arr::AbstractArray, point) = Int(round((point - first(arr)) / (arr[2] - arr[1])))
@@ -52,7 +75,7 @@ rowcol_to_latlon(img::MapImage, row, col) = rowcol_to_latlon(img.demrsc, row, co
 
 # Holdover from the python function naming... 
 latlon_to_rowcol(demrsc::DemRsc, lat::AbstractFloat, lon::AbstractFloat) = nearest_pixel(demrsc, lat, lon)
-latlon_to_rowcol(img::MapImage, lat::AbstractFloat, lon::AbstractFloat) = nearest_pixel(img.demrsc, lat, lon)
+@allow_mapimage latlon_to_rowcol
 
                           
 # For passing Tuples of ranges of lats/lons (or (lat1, end) )
@@ -162,7 +185,7 @@ function grid_corners(demrsc::DemRsc)
     left, right, bot, top = grid_extent(demrsc)
     return [(right, top), (left, top), (left, bot), (right, bot)]
 end
-grid_corners(img::MapImage) = grid_corners(img.demrsc)
+@allow_mapimage grid_corners
 
 
 """
@@ -178,7 +201,7 @@ function grid_extent(demrsc::DemRsc)
     @unpack rows, cols, y_step, x_step, y_first, x_first = demrsc
     return (x_first, x_first .+ x_step * (cols - 1), y_first + y_step * (rows - 1), y_first)
 end
-grid_extent(img::MapImage) = grid_extent(img.demrsc)
+@allow_mapimage grid_extent
 
 
 """
@@ -224,8 +247,7 @@ function grid(demrsc::DemRsc; sparse=false)
     # return collect(reshape(y, :, 1) .* reshape(x, 1, :))
     return collect(ones(length(y), 1) .* reshape(x, 1, :)), collect(reshape(y, :, 1) .* ones(1, length(x)))
 end
-grid(img::MapImage; sparse=false) = grid(img.demrsc, sparse=sparse)
-
+@allow_mapimage grid
 
 ### Stitching ###
 #
@@ -307,7 +329,7 @@ function rowcol_to_dist(demrsc::DemRsc, rowcol1, rowcol2, R=6378)
     latlon2 = rowcol_to_latlon(demrsc, rowcol2...)
     return latlon_to_dist(latlon1, latlon2, R)
 end
-rowcol_to_dist(img::MapImage, args...) = rowcol_to_dist(img.demrsc, args...)
+@allow_mapimage rowcol_to_dist
 
 
 ### Gridding Functions for summing CSVs into bins ###
