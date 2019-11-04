@@ -3,6 +3,8 @@ import Sario: DemRsc
 using Test
 using Documenter
 
+DocMeta.setdocmeta!(MapImages, :DocTestSetup, :(using MapImages; import Sario: DemRsc); recursive=true)
+
 @testset "MapImages.jl" begin
     doctest(MapImages)
 

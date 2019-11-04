@@ -26,9 +26,7 @@ end
 
 
 # """Find the nearest row, col to a given lat and/or lon"""
-function nearest_pixel(demrsc::DemRsc, lat::AbstractFloat, lon::AbstractFloat)
-    return nearest_row(demrsc, lat), nearest_col(demrsc, lon)
-end
+nearest_pixel(demrsc::DemRsc, lat::AbstractFloat, lon::AbstractFloat) = (nearest_row(demrsc, lat), nearest_col(demrsc, lon))
 
 nearest_pixel(demrsc::DemRsc,
               lats::AbstractArray{<:AbstractFloat}, 
@@ -40,6 +38,7 @@ nearest_row(img::MapImage, lats, lons) = nearest_row(img.demrsc, lats, lons)
 nearest_col(img::MapImage, lats, lons) = nearest_col(img.demrsc, lats, lons)
 nearest_pixel(img::MapImage, lats, lons) = nearest_pixel(img.demrsc, lats, lons)
     
+# If we have just an array and not a DemRsc or MapImage:
 nearest(arr::AbstractArray, point) = Int(round((point - first(arr)) / (arr[2] - arr[1])))
 
 """ Takes the row, col of a pixel and finds its lat/lon """
@@ -167,6 +166,8 @@ grid_corners(img::MapImage) = grid_corners(img.demrsc)
 
 
 """
+    grid_extent(demrsc::DemRsc)
+
 Get the boundaries of a grid
 
 Returns:
@@ -179,23 +180,40 @@ function grid_extent(demrsc::DemRsc)
 end
 grid_extent(img::MapImage) = grid_extent(img.demrsc)
 
-"""Returns meshgrid-like arrays X, Y
+
+"""
+    grid(demrsc::DemRsc; sparse=false)
+
+Returns meshgrid-like arrays X, Y
+
+Examples
+------------
+
+```jldoctest
+julia> demrsc = DemRsc(x_first=1.0, y_first=2.0, x_step=0.1, y_step=-0.2, file_length=6, width=5);
 
 julia> XX, YY = MapImages.grid(demrsc);
 
 julia> XX[1:3, 1:3]
 3×3 Array{Float64,2}:
- -104.0  -103.998  -103.997
- -104.0  -103.998  -103.997
- -104.0  -103.998  -103.997
-
+ 1.0  1.1  1.2
+ 1.0  1.1  1.2
+ 1.0  1.1  1.2
+ 
 julia> YY[1:3, 1:3]
 3×3 Array{Float64,2}:
- 31.9     31.9     31.9
- 31.8983  31.8983  31.8983
- 31.8967  31.8967  31.8967
+ 2.0  2.0  2.0
+ 1.8  1.8  1.8
+ 1.6  1.6  1.6
+
+julia> size(XX), size(YY)
+((6, 5), (6, 5))
 
 julia> XX, YY = MapImages.grid(demrsc, sparse=true);
+
+julia> size(XX), size(YY)
+((5,), (6,))
+```
 """
 function grid(demrsc::DemRsc; sparse=false)
     @unpack rows, cols, y_step, x_step, y_first, x_first = demrsc
