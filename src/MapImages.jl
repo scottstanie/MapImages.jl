@@ -1,18 +1,16 @@
 __precompile__(true)
 
 
+
 module MapImages
 
 export MapImage
-
 
 import Parameters: @with_kw, @unpack
 import Sario
 import Sario: DemRsc
 import Base: length, size, similar, step, parent, getindex, setindex!
 
-
-# TODO: tests
 
 # Note: modelling off OffsetArrays
 # https://github.com/JuliaArrays/OffsetArrays.jl/blob/master/src/OffsetArrays.jl
@@ -161,24 +159,37 @@ function _new_dem_data(d::DemRsc, rowrange::ColonOrRange, colrange::ColonOrRange
     col_step = step(colrange)
     row_start = start(rowrange)
     col_start = start(colrange)
-    return crop_rsc_data(d, new_rows, new_cols,
-                         row_start, col_start,
-                         row_step, col_step)
+    return crop_demrsc(d;
+                       new_rows=new_rows, 
+                       new_cols=new_cols,
+                       row_start=row_start,
+                       col_start=col_start,
+                       row_step=row_step,
+                       col_step=col_step)
 end
 
-"""Adjusts the old demrsc of a MapImage after slicing
+"""
+    crop_demrsc(demrsc::DemRsc;
+                new_rows=demrsc.rows, new_cols=demrsc.cols, 
+                row_start=1, col_start=1, 
+                row_step=1, col_step=1)
 
+Adjusts the old demrsc of a MapImage after slicing.
 Takes the 'rows' and 'cols' from demrsc
 and adjusts for the smaller size with a new dict
 
-The row/col_start are the indices where we have sliced:
-    e.g. img[2:3:11, :] would have 
-    row_start = 2, row_step = 3, new_rows = 4
+The `row_start`/`col_start` are the indices where we have sliced.
+This means:
+
+    img[2:3:11, :] 
+
+would have `row_start` = 2, `row_step` = 3, `new_rows` = 4
+
 """
-function crop_rsc_data(demrsc::DemRsc, 
-                       new_rows=demrsc.rows, new_cols=demrsc.cols, 
-                       row_start=1, col_start=1, 
-                       row_step=1, col_step=1)
+function crop_demrsc(demrsc::DemRsc; 
+                     new_rows=demrsc.rows, new_cols=demrsc.cols, 
+                     row_start=1, col_start=1, 
+                     row_step=1, col_step=1)
     @unpack rows, cols, y_step, x_step, y_first, x_first = demrsc
 
     # Move forward the starting row/col from where it used to be
