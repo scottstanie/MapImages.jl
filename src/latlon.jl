@@ -3,18 +3,20 @@ import Sario: DemRsc
 """
     @allow_mapimage(funcname)
 
-macro to make `DemRsc` functions equivalently definted for `MapImage`
-Just passes along the MapImage.demrsc to the already defined function
+macro to make `DemRsc` functions equivalently defined for `MapImage`.
+
+The macro just passes along the `MapImage.demrsc` to the function already defined 
+
 
 Usage
 -------
 
-    nearest_row(d::DemRsc, lats, lons) = ...
-    @allow_mapimage last_lon
+    nearest_row(demrsc::DemRsc, lat::AbstractFloat) = Int(round(1 + (lat - d.y_first) / d.y_step))
+    @allow_mapimage nearest_row
 
 This is the same as:
 
-    nearest_row(img::MapImage, lats, lons) = nearest_row(img.demrsc, lats, lons)
+    nearest_row(img::MapImage, lat) = nearest_row(img.demrsc, lat)
 """
 macro allow_mapimage(funcname)
     fname = esc(funcname)
@@ -36,16 +38,10 @@ last_lon(d::DemRsc) = d.x_first + d.x_step * (d.cols - 1)
 _get_row(demrsc::DemRsc, x::Real) = typeof(x) <: AbstractFloat ? nearest_row(demrsc, x) : x
 _get_col(demrsc::DemRsc, x::Real) = typeof(x) <: AbstractFloat ? nearest_col(demrsc, x) : x
 
-function nearest_row(demrsc::DemRsc, lat::AbstractFloat)
-    @unpack x_first, x_step, y_first, y_step = demrsc
-    return Int(round(1 + (lat - y_first) / y_step))
-end
-
-
-function nearest_col(demrsc::DemRsc, lon::AbstractFloat)
-    @unpack x_first, x_step, y_first, y_step = demrsc
-    return Int(round(1 + (lon - x_first) / x_step))
-end
+nearest_row(demrsc::DemRsc, lat::AbstractFloat) = Int(round(1 + (lat - d.y_first) / d.y_step))
+nearest_col(demrsc::DemRsc, lon::AbstractFloat) = Int(round(1 + (lon - d.x_first) / d.x_step))
+@allow_mapimage nearest_row
+@allow_mapimage nearest_col
 
 
 # """Find the nearest row, col to a given lat and/or lon"""
@@ -56,22 +52,18 @@ nearest_pixel(demrsc::DemRsc,
               lons::AbstractArray{<:AbstractFloat}) = [nearest_pixel(demrsc, lat, lon)
                                                        for (lat, lon) in zip(lats, lons)]
 
-
-@allow_mapimage nearest_row
-@allow_mapimage nearest_col
 @allow_mapimage nearest_pixel
     
 # If we have just an array and not a DemRsc or MapImage:
 nearest(arr::AbstractArray, point) = Int(round((point - first(arr)) / (arr[2] - arr[1])))
 
-""" Takes the row, col of a pixel and finds its lat/lon """
-function rowcol_to_latlon(demrsc::DemRsc, row, col)
-    @unpack y_step, x_step, y_first, x_first = demrsc
-    lat = y_first + (row - 1) * y_step
-    lon = x_first + (col - 1) * x_step
-    return lat, lon
-end
-rowcol_to_latlon(img::MapImage, row, col) = rowcol_to_latlon(img.demrsc, row, col)
+""" 
+    rowcol_to_latlon(demrsc::DemRsc, row, col)
+
+Takes the row, col of a pixel and finds its lat/lon within the grid
+"""
+rowcol_to_latlon(demrsc::DemRsc, row, col) (y_first + (row - 1) * y_step), (x_first + (col - 1) * x_step)
+@allow_mapimage rowcol_to_latlon
 
 # Holdover from the python function naming... 
 latlon_to_rowcol(demrsc::DemRsc, lat::AbstractFloat, lon::AbstractFloat) = nearest_pixel(demrsc, lat, lon)
