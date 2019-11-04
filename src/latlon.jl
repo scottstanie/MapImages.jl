@@ -38,8 +38,8 @@ last_lon(d::DemRsc) = d.x_first + d.x_step * (d.cols - 1)
 _get_row(demrsc::DemRsc, x::Real) = typeof(x) <: AbstractFloat ? nearest_row(demrsc, x) : x
 _get_col(demrsc::DemRsc, x::Real) = typeof(x) <: AbstractFloat ? nearest_col(demrsc, x) : x
 
-nearest_row(demrsc::DemRsc, lat::AbstractFloat) = Int(round(1 + (lat - d.y_first) / d.y_step))
-nearest_col(demrsc::DemRsc, lon::AbstractFloat) = Int(round(1 + (lon - d.x_first) / d.x_step))
+nearest_row(d::DemRsc, lat::AbstractFloat) = Int(round(1 + (lat - d.y_first) / d.y_step))
+nearest_col(d::DemRsc, lon::AbstractFloat) = Int(round(1 + (lon - d.x_first) / d.x_step))
 @allow_mapimage nearest_row
 @allow_mapimage nearest_col
 

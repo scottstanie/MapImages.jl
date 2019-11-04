@@ -137,16 +137,23 @@ end
 # the end of the range was
 # E.G.
 #   A[(30.1, 32.2), (-104.1, :)]
-function Base.getindex(A::MapImage{T,2}, I::Vararg{Tuple{<:Real, <:Real}, 2}) where {T}
-    lats, lons = I
-
+function _slice_latlon(A::MapImage, I)
+    lats, lons = I  # works for 2D, and 3D (lats, lons, :)
     rowrange, colrange = latlon_to_rowcol(A.demrsc, lats, lons)
-    subimg = A.image[rowrange, colrange]
-
-    
     # DemRsc adjusting:
     newdemrsc = _new_dem_data(A.demrsc, rowrange, colrange)
+    return rowrange, colrange, newdemrsc
+end
 
+function Base.getindex(A::MapImage{T,2}, I::Vararg{Tuple{<:Real, <:Real}, 2}) where {T}
+    rowrange, colrange, newdemrsc = _slice_latlon(A, I)
+    subimg = A.image[rowrange, colrange]
+    return MapImage(subimg, newdemrsc)
+end
+
+function Base.getindex(A::MapImage{T,3}, I::Vararg{Union{Tuple{<:Real, <:Real}, Colon}, 3}) where {T}
+    rowrange, colrange, newdemrsc = _slice_latlon(A, I)
+    subimg = A.image[rowrange, colrange, :]
     return MapImage(subimg, newdemrsc)
 end
 
