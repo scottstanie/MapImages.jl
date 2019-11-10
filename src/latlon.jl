@@ -1,4 +1,6 @@
 import Sario: DemRsc
+# import Interpolations: interpolate, BSpline, Constant
+using Interpolations
 
 """
     @allow_mapimage(funcname)
@@ -323,6 +325,8 @@ function rowcol_to_dist(demrsc::DemRsc, rowcol1, rowcol2, R=6378)
 end
 @allow_mapimage rowcol_to_dist
 
+"""Find the degrees separation for distance km assuming distance along great circle arc """
+km_to_deg(km, R=6378) = 360 * km / (2π * R)
 
 ### Gridding Functions for summing CSVs into bins ###
 #
@@ -337,8 +341,16 @@ function bin_vals(demrsc, df; valcol=:sum15_17, loncol=:LongNAD27, latcol=:LatNA
     return out
 end
 
-function coarse_bin_vals(demrsc, df; digits=2, valcol=:sum15_17, loncol=:LongNAD27, latcol=:LatNAD27)
-    lons, lats = coarse_grid(demrsc, digits)
+function coarse_bin_vals(demrsc, df; step_km=nothing, digits=nothing, 
+                         valcol=:sum15_17, loncol=:LongNAD27, latcol=:LatNAD27,
+                         samesize=true)
+    if !isnothing(step_km)
+        lons, lats = coarse_grid_km(demrsc, step_km)
+    elseif !isnothing(digits)
+        lons, lats = coarse_grid_deg(demrsc, digits)
+    else
+        error("Need step_km or digits")
+    end
     out = zeros(size(lats, 1), size(lons, 1))
     for (lon, lat, val) in eachrow(df[:, [loncol, latcol, valcol]])
         row = nearest(lats, lat)
@@ -346,14 +358,29 @@ function coarse_bin_vals(demrsc, df; digits=2, valcol=:sum15_17, loncol=:LongNAD
         oob(row, col, out) && continue
         out[row, col] += val
     end
-    return out
+    return samesize ? resize_nearest(out, size(demrsc)...) : out
+end
+
+function resize_nearest(img, nrows, ncols)
+    intp = interpolate(img, BSpline(Constant()))
+    etpf = extrapolate(intp, Flat())
+    return etpf(range(.5, stop=size(img, 1)+.5, length=nrows), range(.5, stop=size(img, 2)+.5, length=ncols))
+end
+
+
+"""Create a grid in DemRsc area with spacing `step_km`"""
+function coarse_grid_km(demrsc, step_km::Union{AbstractFloat, Nothing}=(10/0.62))
+    lons, lats = MapImages.grid(demrsc, sparse=true)
+    step = km_to_deg(step_km)
+    return lons[1]:step:lons[end], lats[1]:(-step):lats[end]
 end
 
 """Create a grid from a DemRsc on the 10^(-`digits`) grid lines"""
-function coarse_grid(demrsc, digits=2)
+function coarse_grid_deg(demrsc, digits::Union{Int, Nothing}=2)
+    step = 10.0^(-digits)
     lons, lats = MapImages.grid(demrsc, sparse=true)
     lat1, lat2 = round.(extrema(lats), digits=digits)
     lon1, lon2 = round.(extrema(lons), digits=digits)
-    step = 10.0^(-digits)
     return lon1:step:lon2, lat2:(-step):lat1
 end
+
