@@ -46,7 +46,7 @@ function MapImage(filename::AbstractString; dset_name::AbstractString="")
     return MapImage(Sario.load(filename, dset_name=dset_name), demrsc)
 end
 # Optional: seems like passing two strings should always be the (filename, dset)
-MapImage(filename::AbstractString, dset_name::AbstractString="") = MapImage(filename, dset_name=dset_name)
+MapImage(filename::AbstractString, dset_name::AbstractString) = MapImage(filename, dset_name=dset_name)
 
 Base.eachindex(::IndexCartesian, A::MapImage) = CartesianIndices(axes(A))
 
