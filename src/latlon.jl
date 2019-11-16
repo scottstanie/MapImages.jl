@@ -62,7 +62,7 @@ nearest(arr::AbstractArray, point) = Int(round((point - first(arr)) / (arr[2] - 
 
 Takes the row, col of a pixel and finds its lat/lon within the grid
 """
-rowcol_to_latlon(demrsc::DemRsc, row, col) = ((y_first + (row - 1) * y_step), (x_first + (col - 1) * x_step))
+rowcol_to_latlon(d::DemRsc, row, col) = ((d.y_first + (row - 1) * d.y_step), (d.x_first + (col - 1) * d.x_step))
 @allow_mapimage rowcol_to_latlon
 
 # Holdover from the python function naming... 
@@ -118,7 +118,7 @@ _least_common(a, b) = min(maximum(a), maximum(b))
 #
 function find_overlap_idxs(asc_img, desc_img, asc_demrsc::DemRsc, desc_demrsc::DemRsc)
     left, right, bottom, top = intersection_corners(asc_demrsc, desc_demrsc)
-    println(left, right, bottom, top)
+    # println(left, right, bottom, top)
 
     row1, col1 = nearest_pixel(asc_demrsc, top, left)
     row2, col2 = nearest_pixel(asc_demrsc, bottom, right)
