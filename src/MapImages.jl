@@ -1,14 +1,12 @@
 __precompile__(true)
 
-
-
 module MapImages
 
 export MapImage
 
 import Parameters: @with_kw, @unpack
 import Sario
-import Sario: DemRsc
+import Sario: DemRsc, take_looks
 import Base: length, size, similar, step, parent, getindex, setindex!
 
 
@@ -177,6 +175,7 @@ function _new_dem_data(d::DemRsc, rowrange::ColonOrRange, colrange::ColonOrRange
                        col_step=col_step)
 end
 
+
 """
     crop_demrsc(demrsc::DemRsc;
                 new_rows=demrsc.rows, new_cols=demrsc.cols, 
@@ -216,6 +215,14 @@ function crop_demrsc(demrsc::DemRsc;
 end
 
 
+function take_looks(m::MapImage, row_looks, col_looks) 
+    outim = take_looks(m.image, row_looks, col_looks)
+
+    newdem = crop_demrsc(m.demrsc; new_rows=new_rows, new_cols=new_cols,
+                         row_start=row_start, col_start=col_start,
+                         row_step=row_step, col_step=col_step)
+    return MapImage(outim, newdem)
+end
 
 # function Base.setindex!(A::MapImage{T,N}, val, I::Vararg{Int,N}) where {T,N}
 function Base.setindex!(A::MapImage{T,N}, val, I::Vararg{Any,N}) where {T,N}
