@@ -218,9 +218,9 @@ end
 function take_looks(m::MapImage, row_looks, col_looks) 
     outim = take_looks(m.image, row_looks, col_looks)
 
+    new_rows, new_cols = size(outim)
     newdem = crop_demrsc(m.demrsc; new_rows=new_rows, new_cols=new_cols,
-                         row_start=row_start, col_start=col_start,
-                         row_step=row_step, col_step=col_step)
+                         row_step=row_looks, col_step=col_looks)
     return MapImage(outim, newdem)
 end
 
