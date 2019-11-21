@@ -2,7 +2,7 @@ __precompile__(true)
 
 module MapImages
 
-export MapImage
+export MapImage, @latlon, take_looks
 
 import Parameters: @with_kw, @unpack
 import Sario
@@ -213,6 +213,57 @@ function crop_demrsc(demrsc::DemRsc;
                   x_first=new_x_first, y_first=new_y_first,
                   x_step=new_x_step, y_step=new_y_step)
 end
+
+
+"""
+    @allow_mapimage(funcname)
+
+macro to make `DemRsc` functions equivalently defined for `MapImage`.
+
+The macro just passes along the `MapImage.demrsc` to the function already defined 
+
+
+Usage
+-------
+
+    nearest_row(demrsc::DemRsc, lat::AbstractFloat) = Int(round(1 + (lat - d.y_first) / d.y_step))
+    @allow_mapimage nearest_row
+
+This is the same as:
+
+    nearest_row(img::MapImage, lat) = nearest_row(img.demrsc, lat)
+"""
+macro latlon(expr)
+    varname, part1, part2 = expr.args
+
+    idxs1 = (part1.args[2], part1.args[3])
+    idxs2 = (part2.args[2], part2.args[3])
+
+    # TODO: Haven't actually implement float slicing with colons
+    # either floats, or a colon
+    # idxs1 = part1 isa Expr ?  (part1.args[2], part1.args[3]) : esc(part1)
+    # idxs2 = part2 isa Expr ?  (part2.args[2], part2.args[3]) : esc(part2)
+    return quote
+        $(esc(varname))[$idxs1, $idxs2]
+    end
+end
+# Example
+# julia> dump(:(a[1.1:2.2, :]))
+# Expr
+#   head: Symbol ref
+#   args: Array{Any}((3,))
+#     1: Symbol a
+#     2: Expr
+#       head: Symbol call
+#       args: Array{Any}((3,))
+#         1: Symbol :
+#         2: Float64 1.1
+#         3: Float64 2.2
+#     3: Symbol :
+#
+#  Desired conversion:
+#   a[(1.1, 2.2), :]
+
 
 
 function take_looks(m::MapImage, row_looks, col_looks) 
