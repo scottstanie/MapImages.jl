@@ -8,6 +8,7 @@ import Parameters: @with_kw, @unpack
 import Sario
 import Sario: DemRsc, take_looks
 import Base: length, size, similar, step, parent, getindex, setindex!
+using DocStringExtensions: SIGNATURES
 
 
 # Note: modelling off OffsetArrays
@@ -216,9 +217,9 @@ end
 
 
 """
-    @allow_mapimage(funcname)
+$(SIGNATURES)
 
-macro to make `DemRsc` functions equivalently defined for `MapImage`.
+macro to allow indexing by latitute/longitude
 
 The macro just passes along the `MapImage.demrsc` to the function already defined 
 
@@ -226,12 +227,8 @@ The macro just passes along the `MapImage.demrsc` to the function already define
 Usage
 -------
 
-    nearest_row(demrsc::DemRsc, lat::AbstractFloat) = Int(round(1 + (lat - d.y_first) / d.y_step))
-    @allow_mapimage nearest_row
+    @latlon A[31.1:32.3, -104.1:-104.5]
 
-This is the same as:
-
-    nearest_row(img::MapImage, lat) = nearest_row(img.demrsc, lat)
 """
 macro latlon(expr)
     varname, part1, part2 = expr.args
