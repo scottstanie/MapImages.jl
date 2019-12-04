@@ -178,10 +178,7 @@ end
 
 
 """
-    crop_demrsc(demrsc::DemRsc;
-                new_rows=demrsc.rows, new_cols=demrsc.cols, 
-                row_start=1, col_start=1, 
-                row_step=1, col_step=1)
+$(SIGNATURES)
 
 Adjusts the old demrsc of a MapImage after slicing.
 Takes the 'rows' and 'cols' from demrsc
@@ -220,8 +217,6 @@ end
 $(SIGNATURES)
 
 macro to allow indexing by latitute/longitude
-
-The macro just passes along the `MapImage.demrsc` to the function already defined 
 
 
 Usage
