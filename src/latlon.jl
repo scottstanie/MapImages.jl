@@ -159,7 +159,9 @@ end
 function _mask_asc_desc(a, d)
     m1 = a .== 0;
     m2 = d .== 0;
-    mask = m1 .| m2
+    # TODO: without converting, something about this throws 
+    # ERROR: ArgumentError: number of indices (1) must match the parent dimensionality (2)
+    mask = convert(Array{Bool}, m1 .| m2)
     a[mask] .= 0;
     d[mask] .= 0;
     return a, d
