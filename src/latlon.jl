@@ -197,6 +197,7 @@ function grid_extent(demrsc::DemRsc)
 end
 @allow_mapimage grid_extent
 
+grid_extent(xs::AbstractArray, ys::AbstractArray) = (extrema(xs)..., extrema(ys)...)
 
 """
     grid(demrsc::DemRsc; sparse=false)
