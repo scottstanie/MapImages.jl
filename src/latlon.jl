@@ -245,9 +245,9 @@ end
 @allow_mapimage grid
 
 function from_grid(xs::AbstractArray, ys::AbstractArray)
-    xs = unique(xs)
-    ys = unique(ys)
-    DemRsc(length(xs), length(ys), xs[1], ys[1], xs[2]-xs[1], ys[2]-ys[1])
+    xs = sort(unique(xs))
+    ys = sort(unique(ys), rev=true)
+    DemRsc(length(xs), length(ys), xs[1], ys[1], xs[2]-xs[1], -(abs(ys[2]-ys[1])))
 end
 
 ### Stitching ###
