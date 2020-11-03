@@ -141,17 +141,9 @@ function find_overlaps(asc_fname::AbstractString, desc_fname::AbstractString=asc
     return find_overlaps(asc_img, desc_img)
 end
 
-function find_overlaps(asc_img::MapImage{T, 2}, desc_img::MapImage{T, 2}) where {T}
+function find_overlaps(asc_img::MapImage, desc_img::MapImage) where {T}
     asc_idxs, desc_idxs = find_overlap_idxs(asc_img, desc_img)
     a, d = asc_img[asc_idxs...], desc_img[desc_idxs...]
-    a, d = _mask_asc_desc(a, d)
-    return a, d
-end
-
-# TODO: these should really be one... figure out
-function find_overlaps(asc_img::MapImage{T, 3}, desc_img::MapImage{T, 3}) where {T}
-    asc_idxs, desc_idxs = find_overlap_idxs(asc_img, desc_img)
-    a, d = asc_img[asc_idxs..., :], desc_img[desc_idxs..., :]
     a, d = _mask_asc_desc(a, d)
     return a, d
 end
